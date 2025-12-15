@@ -1,13 +1,18 @@
 import jwt from 'jsonwebtoken';
 import logger from './logger.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'dev-jwt-secret-key-only-for-development';
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d'; // 7 days default
-
-// Warn if using default secret in production
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET && !process.env.SESSION_SECRET) {
-  logger.warn('SECURITY WARNING: Using default JWT secret in production. Set JWT_SECRET or SESSION_SECRET environment variable.');
+// Get JWT secret - in production, require it to be set explicitly
+let JWT_SECRET;
+if (process.env.NODE_ENV === 'production') {
+  JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET or SESSION_SECRET environment variable is required in production');
+  }
+} else {
+  JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'dev-jwt-secret-key-only-for-development';
 }
+
+const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d'; // 7 days default
 
 export function generateToken(user) {
   try {

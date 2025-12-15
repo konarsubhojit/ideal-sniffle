@@ -166,6 +166,92 @@ cd frontend
 npm run preview
 ```
 
+## Deployment
+
+### Deploying to Vercel
+
+This application is optimized for deployment on Vercel. Follow these steps:
+
+#### Backend Deployment
+
+1. **Push your code to GitHub** (if not already done)
+
+2. **Import the backend project to Vercel**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "Add New" → "Project"
+   - Import your GitHub repository
+   - Set the **Root Directory** to `backend`
+
+3. **Configure Environment Variables**
+   
+   In Vercel project settings, add these environment variables:
+   ```
+   DATABASE_URL=your_neon_database_connection_string
+   NODE_ENV=production
+   ALLOWED_ORIGINS=https://your-frontend-domain.vercel.app
+   ```
+   
+   > **Note**: Get your DATABASE_URL from [Neon Console](https://console.neon.tech)
+
+4. **Deploy**
+   - Vercel will automatically detect the configuration from `vercel.json`
+   - Click "Deploy"
+   - Note the deployment URL (e.g., `https://your-backend.vercel.app`)
+
+#### Frontend Deployment
+
+1. **Import the frontend project to Vercel**
+   - In Vercel Dashboard, click "Add New" → "Project"
+   - Import the same GitHub repository
+   - Set the **Root Directory** to `frontend`
+
+2. **Configure Environment Variables**
+   
+   In Vercel project settings, add:
+   ```
+   VITE_API_URL=https://your-backend.vercel.app
+   ```
+   
+   > Replace with your actual backend URL from step 4 above
+
+3. **Configure Build Settings**
+   - Framework Preset: Vite
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+
+4. **Deploy**
+   - Click "Deploy"
+   - Your app will be available at the provided URL
+
+5. **Update Backend CORS**
+   
+   After frontend is deployed, update the backend's `ALLOWED_ORIGINS` environment variable:
+   ```
+   ALLOWED_ORIGINS=https://your-frontend.vercel.app
+   ```
+   
+   This ensures proper CORS configuration for production.
+
+### Production Checklist
+
+- [ ] Database is properly configured on Neon
+- [ ] Backend environment variables are set in Vercel
+- [ ] Frontend environment variable (`VITE_API_URL`) points to backend
+- [ ] Backend `ALLOWED_ORIGINS` includes frontend URL
+- [ ] Both deployments are successful
+- [ ] Test the health endpoint: `https://your-backend.vercel.app/api/health`
+- [ ] Test the frontend and verify it connects to the backend
+
+### Logging
+
+The backend includes comprehensive logging for:
+- All incoming requests (method, path, query params, IP)
+- All responses (status code, duration)
+- Database operations (queries, errors)
+- Application events (startup, errors, warnings)
+
+Logs are output in JSON format for easy parsing and can be viewed in Vercel's deployment logs.
+
 ## License
 
 This project is licensed under the MIT License.

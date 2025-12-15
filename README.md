@@ -38,9 +38,17 @@ A full-stack expense tracking application with React + Material UI frontend and 
 │   ├── public/        # Static assets
 │   ├── index.html     # HTML entry point
 │   └── package.json   # Frontend dependencies
-├── backend/           # Node.js backend API
-│   ├── index.js       # Express server & routes
-│   └── package.json   # Backend dependencies
+├── backend/           # Node.js backend API (organized & modular)
+│   ├── src/          # Source code
+│   │   ├── config/   # Configuration (database, passport)
+│   │   ├── db/       # Drizzle ORM schemas
+│   │   ├── middleware/ # Auth, logging middleware
+│   │   ├── routes/   # API routes (auth, expenses, settlement, activity)
+│   │   ├── services/ # Business logic (settlement calculations)
+│   │   └── utils/    # Utilities (logger)
+│   ├── tests/        # Test files
+│   ├── index.js      # Entry point
+│   └── package.json  # Backend dependencies
 ├── README.md          # This file
 ├── TESTING.md         # Testing guide
 └── UI_DOCUMENTATION.md # UI documentation
@@ -205,13 +213,46 @@ CREATE TABLE activity_log (
 
 ## Calculation Logic
 
-**All calculations are now performed on the backend** for better performance and maintainability.
+**All calculations are performed on the backend** using a fair and simple formula.
 
-1. **Total Billable Heads**: 27 people (28 total minus one 5-year-old who is free)
-2. **Base Unit Cost**: Total Expense ÷ 27
-3. **Other Family** (External): Pays Base Unit Cost × 3 (only for their 3 members)
-4. **Main Family** (Internal): 18 paying members split the remaining cost equally, subsidizing 6 non-paying staff/children
-5. **Optimized Settlements**: Backend calculates the minimum number of transactions needed to settle all debts
+### Updated Logic (Group Heads Pay for All Members)
+
+1. **Total People**: 21 people across 9 groups
+2. **Cost Per Person**: Total Expense ÷ 21
+3. **Each Group's Fair Share**: Cost Per Person × Group Size
+4. **Balance**: Amount Paid - Fair Share
+
+### Group Breakdown
+- **Other Family** (External): 3 people
+- **Subhojit Konar** (Internal): 3 people
+- **Ravi Ranjan Verma** (Internal): 3 people
+- **6 Internal groups** with 2 people each
+
+### Example
+If total expense is ₹2100:
+- Cost per person = ₹2100 ÷ 21 = ₹100
+- Other Family (3 people): Fair share = ₹100 × 3 = ₹300
+- Group with 2 people: Fair share = ₹100 × 2 = ₹200
+
+### Optimized Settlements
+The backend calculates the minimum number of transactions needed to settle all debts using a greedy algorithm.
+
+## Testing
+
+### Run Settlement Tests
+```bash
+cd backend
+npm test
+```
+
+All settlement calculation logic is thoroughly tested with 20 comprehensive tests covering:
+- Business rule verification
+- Fair share calculations for different group sizes
+- Balance calculations
+- Edge cases (zero expenses, single payer, decimal precision)
+- Optimized transaction generation
+
+See `backend/ARCHITECTURE.md` for detailed code organization and logic documentation.
 
 ## Development
 

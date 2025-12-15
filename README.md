@@ -10,6 +10,7 @@ A React + Vite + Tailwind CSS application for managing and splitting expenses fo
 - **Color-Coded Balances**: Green for amounts to receive, Red for amounts to pay
 - **Expense Log**: View all expenses with ability to delete individual items
 - **Reset Functionality**: Clear all data and start fresh
+- **Data Persistence**: Expenses are automatically saved to browser localStorage and persist across page refreshes
 
 ## Calculation Logic
 

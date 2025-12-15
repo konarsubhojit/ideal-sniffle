@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function App() {
   // Hardcoded groups as per requirement
@@ -17,14 +17,33 @@ function App() {
   // Constants
   const TOTAL_BILLABLE_HEADS = 27;
   const MAIN_FAMILY_PAYING_COUNT = 18;
+  const STORAGE_KEY = 'family-picnic-expenses';
 
-  // State
-  const [expenses, setExpenses] = useState([]);
+  // State - Load expenses from localStorage on initial render
+  const [expenses, setExpenses] = useState(() => {
+    try {
+      const savedExpenses = localStorage.getItem(STORAGE_KEY);
+      return savedExpenses ? JSON.parse(savedExpenses) : [];
+    } catch (error) {
+      console.error('Failed to load expenses from localStorage:', error);
+      return [];
+    }
+  });
+  
   const [formData, setFormData] = useState({
     paidBy: groups[0].id,
     amount: '',
     description: ''
   });
+
+  // Persist expenses to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    } catch (error) {
+      console.error('Failed to save expenses to localStorage:', error);
+    }
+  }, [expenses]);
 
   // Calculate totals and settlements
   const calculateSettlement = () => {

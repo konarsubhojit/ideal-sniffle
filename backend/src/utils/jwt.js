@@ -4,6 +4,11 @@ import logger from './logger.js';
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'dev-jwt-secret-key-only-for-development';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d'; // 7 days default
 
+// Warn if using default secret in production
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET && !process.env.SESSION_SECRET) {
+  logger.warn('SECURITY WARNING: Using default JWT secret in production. Set JWT_SECRET or SESSION_SECRET environment variable.');
+}
+
 export function generateToken(user) {
   try {
     const payload = {

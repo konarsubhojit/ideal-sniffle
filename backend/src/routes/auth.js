@@ -28,10 +28,10 @@ router.get('/google/callback', authLimiter,
       // Generate JWT token for the authenticated user
       const token = generateToken(req.user);
       
-      // Redirect to frontend with token in URL fragment (hash)
-      // This allows the frontend to extract and store the token
+      // Redirect to frontend with token in URL hash (more secure than query params)
+      // Hash fragments are not sent to the server and don't appear in server logs
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      res.redirect(`${frontendUrl}?token=${encodeURIComponent(token)}`);
+      res.redirect(`${frontendUrl}#token=${encodeURIComponent(token)}`);
     } catch (error) {
       logger.error('Error generating token in OAuth callback', error);
       res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173');

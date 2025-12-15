@@ -87,27 +87,28 @@ function App() {
   // Constants
   const TOTAL_BILLABLE_HEADS = 27;
 
-  // Extract token from URL on OAuth callback
+  // Extract token from URL hash on OAuth callback (runs once on mount)
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    
-    if (token) {
-      // Store the token
-      setToken(token);
-      
-      // Clean up the URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-      
-      // Check auth with the new token
-      checkAuth();
+    const hash = window.location.hash;
+    if (hash && hash.includes('token=')) {
+      // Extract token from hash fragment (format: #token=xyz)
+      const tokenMatch = hash.match(/token=([^&]+)/);
+      if (tokenMatch && tokenMatch[1]) {
+        const token = decodeURIComponent(tokenMatch[1]);
+        // Store the token
+        setToken(token);
+        
+        // Clean up the URL hash
+        window.location.hash = '';
+        
+        // Trigger auth check with new token
+        checkAuthWithToken();
+      }
+    } else {
+      // Normal page load - check existing auth
+      checkAuthWithToken();
     }
-  }, []);
-
-  // Fetch user authentication status
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  }, []); // Empty dependency array - runs once on mount
 
   // Fetch data when authenticated
   useEffect(() => {
@@ -117,7 +118,7 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const checkAuth = async () => {
+  const checkAuthWithToken = async () => {
     try {
       const response = await authFetch(`${API_URL}/api/auth/user`);
       if (response.ok) {

@@ -1,10 +1,10 @@
 # Expense Manager
 
-A full-stack expense tracking application with React + Vite + Tailwind CSS frontend and Node.js + Express + Neon PostgreSQL backend.
+A full-stack expense tracking application with React + Material UI frontend and Node.js + Express + Neon PostgreSQL backend.
 
 ## Features
 
-- **Clean & Simple UI**: Header with main dashboard showing who owes what
+- **Clean & Modern UI**: Built with Material UI components for a professional look
 - **Expense Tracking**: Add expenses with who paid and amount
 - **Live Settlement Dashboard**: Real-time calculation of who owes what
 - **Fair Share Calculation**: Sophisticated algorithm for splitting costs
@@ -15,13 +15,30 @@ A full-stack expense tracking application with React + Vite + Tailwind CSS front
 
 ### Frontend
 - React 19
+- Material UI (MUI)
 - Vite 7
-- Tailwind CSS 4
 
 ### Backend
 - Node.js with Express
 - Neon PostgreSQL (Serverless)
 - REST API
+
+## Project Structure
+
+```
+.
+├── frontend/           # React frontend application
+│   ├── src/           # Source files
+│   ├── public/        # Static assets
+│   ├── index.html     # HTML entry point
+│   └── package.json   # Frontend dependencies
+├── backend/           # Node.js backend API
+│   ├── index.js       # Express server & routes
+│   └── package.json   # Backend dependencies
+├── README.md          # This file
+├── TESTING.md         # Testing guide
+└── UI_DOCUMENTATION.md # UI documentation
+```
 
 ## Getting Started
 
@@ -40,43 +57,44 @@ A full-stack expense tracking application with React + Vite + Tailwind CSS front
 
 2. **Install frontend dependencies**
    ```bash
+   cd frontend
    npm install
    ```
 
 3. **Install backend dependencies**
    ```bash
-   cd server
+   cd ../backend
    npm install
    ```
 
 4. **Configure environment variables**
    
-   Backend (.env file in `server/` directory):
+   Backend (.env file in `backend/` directory):
    ```bash
-   cd server
+   cd backend
    cp .env.example .env
    ```
    
-   Edit `server/.env` and add your Neon database URL:
+   Edit `backend/.env` and add your Neon database URL:
    ```
-   DATABASE_URL=postgresql://username:password@your-neon-host/database?sslmode=require
+   DATABASE_URL=postgresql://your-neon-host/database?sslmode=require
    PORT=3000
    ```
    
-   Frontend (.env file in root directory):
+   Frontend (.env file in `frontend/` directory):
    ```bash
-   cd ..
+   cd ../frontend
    cp .env.example .env
    ```
    
-   Edit `.env`:
+   Edit `frontend/.env`:
    ```
    VITE_API_URL=http://localhost:3000
    ```
 
 5. **Start the backend server**
    ```bash
-   cd server
+   cd backend
    npm start
    ```
    
@@ -87,6 +105,7 @@ A full-stack expense tracking application with React + Vite + Tailwind CSS front
 
 6. **Start the frontend (in a new terminal)**
    ```bash
+   cd frontend
    npm run dev
    ```
    
@@ -125,41 +144,26 @@ The app uses a specific algorithm for fair expense splitting:
 
 ### Frontend Development
 ```bash
+cd frontend
 npm run dev
 ```
 
 ### Backend Development (with auto-reload)
 ```bash
-cd server
+cd backend
 npm run dev
 ```
 
 ### Build for Production
 ```bash
+cd frontend
 npm run build
 ```
 
 ### Preview Production Build
 ```bash
+cd frontend
 npm run preview
-```
-
-## Project Structure
-
-```
-.
-├── src/                 # Frontend React application
-│   ├── App.jsx         # Main application component
-│   ├── main.jsx        # React entry point
-│   └── index.css       # Tailwind CSS imports
-├── server/             # Backend Node.js API
-│   ├── index.js        # Express server & API routes
-│   ├── package.json    # Backend dependencies
-│   └── .env           # Backend environment variables (not committed)
-├── public/             # Static assets
-├── index.html         # HTML entry point
-├── package.json       # Frontend dependencies
-└── .env               # Frontend environment variables (not committed)
 ```
 
 ## License

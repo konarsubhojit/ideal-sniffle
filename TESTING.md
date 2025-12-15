@@ -17,14 +17,14 @@ This guide will help you set up and test the Expense Manager application locally
 4. Click on "Connection Details" or "Connection String"
 5. Copy the connection string - it will look like:
    ```
-   postgresql://username:password@ep-xxx-xxx.region.aws.neon.tech/dbname?sslmode=require
+   postgresql://user:pass@ep-xxx-xxx.region.aws.neon.tech/dbname?sslmode=require
    ```
 
 ### 2. Configure Backend Environment
 
-1. Navigate to the `server` directory:
+1. Navigate to the `backend` directory:
    ```bash
-   cd server
+   cd backend
    ```
 
 2. Create a `.env` file:
@@ -40,9 +40,9 @@ This guide will help you set up and test the Expense Manager application locally
 
 ### 3. Configure Frontend Environment
 
-1. Go back to the root directory:
+1. Navigate to the `frontend` directory:
    ```bash
-   cd ..
+   cd ../frontend
    ```
 
 2. Create a `.env` file:
@@ -59,14 +59,14 @@ This guide will help you set up and test the Expense Manager application locally
 
 1. Install frontend dependencies:
    ```bash
+   cd frontend
    npm install
    ```
 
 2. Install backend dependencies:
    ```bash
-   cd server
+   cd ../backend
    npm install
-   cd ..
    ```
 
 ### 5. Start the Application
@@ -75,7 +75,7 @@ You'll need **two terminal windows**.
 
 **Terminal 1 - Backend Server:**
 ```bash
-cd server
+cd backend
 npm start
 ```
 
@@ -87,6 +87,7 @@ Database initialized successfully
 
 **Terminal 2 - Frontend Development Server:**
 ```bash
+cd frontend
 npm run dev
 ```
 
@@ -104,7 +105,7 @@ VITE v7.x.x  ready in xxx ms
 2. You should see a clean interface with:
    - **Header** at the top with "Expense Manager"
    - **Dashboard** showing "Who Owes Who" (initially empty)
-   - **Add Expense** section with a simple form
+   - **Add Expense** section with a form
    - **Expense History** section
 
 3. **Test Adding an Expense:**
@@ -116,7 +117,7 @@ VITE v7.x.x  ready in xxx ms
    - The dashboard should update with calculated balances
 
 4. **Test Deleting an Expense:**
-   - Click the "✕" button next to any expense
+   - Click the delete icon next to any expense
    - The expense should be removed
    - The dashboard should update
 
@@ -139,7 +140,7 @@ VITE v7.x.x  ready in xxx ms
 
 **Error:** `Error initializing database`
 **Solution:** 
-- Verify your `DATABASE_URL` in `server/.env` is correct
+- Verify your `DATABASE_URL` in `backend/.env` is correct
 - Make sure you copied the complete connection string from Neon
 - Check that your Neon project is active
 
@@ -148,7 +149,7 @@ VITE v7.x.x  ready in xxx ms
 **Error message in the UI or console**
 **Solution:**
 - Make sure the backend server is running on port 3000
-- Check that `VITE_API_URL` in `.env` is set to `http://localhost:3000`
+- Check that `VITE_API_URL` in `frontend/.env` is set to `http://localhost:3000`
 - Restart the frontend dev server after changing `.env` files
 
 ### Port already in use
@@ -156,7 +157,7 @@ VITE v7.x.x  ready in xxx ms
 **Error:** `EADDRINUSE: address already in use :::3000`
 **Solution:**
 - Another application is using port 3000
-- Either stop that application or change the port in `server/.env`:
+- Either stop that application or change the port in `backend/.env`:
   ```
   PORT=3001
   ```

@@ -42,7 +42,12 @@ function App() {
       const response = await fetch(`${API_URL}/api/expenses`);
       if (!response.ok) throw new Error('Failed to fetch expenses');
       const data = await response.json();
-      setExpenses(data);
+      // Ensure amount is a number
+      const normalizedData = data.map(exp => ({
+        ...exp,
+        amount: parseFloat(exp.amount)
+      }));
+      setExpenses(normalizedData);
       setError(null);
     } catch (error) {
       console.error('Error fetching expenses:', error);
@@ -322,7 +327,7 @@ function App() {
                       <p className="text-sm text-gray-600">Paid by: {payer?.name || 'Unknown'}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <p className="font-semibold text-gray-900">₹{parseFloat(expense.amount).toFixed(2)}</p>
+                      <p className="font-semibold text-gray-900">₹{expense.amount.toFixed(2)}</p>
                       <button
                         onClick={() => handleDeleteExpense(expense.id)}
                         className="text-red-500 hover:text-red-700 font-medium text-lg"

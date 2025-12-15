@@ -121,10 +121,14 @@ function App() {
     if (!response.ok) throw new Error('Failed to fetch groups');
     const data = await response.json();
     setGroups(data);
-    if (data.length > 0 && !formData.paidBy) {
-      setFormData(prev => ({ ...prev, paidBy: data[0].id }));
-    }
-  }, [formData.paidBy]);
+    // Set default paidBy only on first load
+    setFormData(prev => {
+      if (!prev.paidBy && data.length > 0) {
+        return { ...prev, paidBy: data[0].id };
+      }
+      return prev;
+    });
+  }, []);
 
   const fetchExpenses = useCallback(async () => {
     const response = await fetch(`${API_URL}/api/expenses`);

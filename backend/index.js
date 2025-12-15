@@ -102,8 +102,13 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Session configuration
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+  logger.error('SESSION_SECRET environment variable is required in production');
+  throw new Error('SESSION_SECRET is required in production');
+}
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET || 'dev-secret-key-only-for-development',
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -652,7 +657,13 @@ app.get('/api/settlement/optimized', async (req, res) => {
 // Get activity log
 app.get('/api/activity', async (req, res) => {
   try {
-    const { limit = 100, offset = 0 } = req.query;
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 100, 1000));
+    const offset = Math.max(0, parseInt(req.query.offset) || 0);
+    
+    // Validate that limit and offset are valid numbers
+    if (isNaN(limit) || isNaN(offset)) {
+      return res.status(400).json({ error: 'Invalid limit or offset parameters' });
+    }
     
     logger.info('Fetching activity log', { limit, offset });
     
@@ -670,8 +681,8 @@ app.get('/api/activity', async (req, res) => {
       FROM activity_log al
       LEFT JOIN users u ON al.user_id = u.id
       ORDER BY al.created_at DESC
-      LIMIT ${parseInt(limit)}
-      OFFSET ${parseInt(offset)}
+      LIMIT ${limit}
+      OFFSET ${offset}
     `;
     
     logger.info('Activity log fetched successfully', { count: activities.length });

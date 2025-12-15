@@ -40,7 +40,6 @@ import {
   MenuItem as MenuItemComponent,
   ListItemIcon,
   Snackbar,
-  Badge,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -97,7 +96,8 @@ function App() {
     if (user) {
       fetchData();
     }
-  }, [user, fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const checkAuth = async () => {
     try {
@@ -398,9 +398,7 @@ function App() {
               onClick={handleOpenActivityLog}
               title="View Activity Log"
             >
-              <Badge badgeContent={activities.length} color="error">
-                <HistoryIcon />
-              </Badge>
+              <HistoryIcon />
             </IconButton>
             
             <IconButton

@@ -681,13 +681,16 @@ app.get('/api/settlement/optimized', async (req, res) => {
 // Get activity log
 app.get('/api/activity', async (req, res) => {
   try {
-    const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 100, 1000));
-    const offset = Math.max(0, parseInt(req.query.offset) || 0);
+    const parsedLimit = parseInt(req.query.limit);
+    const parsedOffset = parseInt(req.query.offset);
     
     // Validate that limit and offset are valid numbers
-    if (isNaN(limit) || isNaN(offset)) {
+    if ((req.query.limit && isNaN(parsedLimit)) || (req.query.offset && isNaN(parsedOffset))) {
       return res.status(400).json({ error: 'Invalid limit or offset parameters' });
     }
+    
+    const limit = Math.max(1, Math.min(parsedLimit || 100, 1000));
+    const offset = Math.max(0, parsedOffset || 0);
     
     logger.info('Fetching activity log', { limit, offset });
     

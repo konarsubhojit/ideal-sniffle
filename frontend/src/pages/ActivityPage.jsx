@@ -1,16 +1,23 @@
-import { useState } from 'react';
-import { Card, CardContent, Typography, Button } from '@mui/material';
+import { useEffect } from 'react';
+import { Card, CardContent, Typography, Box, CircularProgress, Alert } from '@mui/material';
 import { useActivities } from '../hooks/useActivities';
-import ActivityLogDialog from '../components/ActivityLogDialog';
+import ActivityList from '../components/ActivityList';
 
 function ActivityPage() {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const { data: activities = [], refetch, isLoading } = useActivities(50);
+  const { data: activities = [], isLoading, error, refetch } = useActivities(50);
 
-  const handleOpenDialog = async () => {
-    await refetch();
-    setDialogOpen(true);
-  };
+  useEffect(() => {
+    refetch();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ mb: 3 }}>
+        Failed to load activities. Please try again.
+      </Alert>
+    );
+  }
 
   return (
     <Card>
@@ -23,19 +30,13 @@ function ActivityPage() {
           View all recent activity and changes made to expenses.
         </Typography>
 
-        <Button 
-          variant="contained" 
-          onClick={handleOpenDialog}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Loading...' : 'View Activity Log'}
-        </Button>
-
-        <ActivityLogDialog
-          open={dialogOpen}
-          activities={activities}
-          onClose={() => setDialogOpen(false)}
-        />
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <ActivityList activities={activities} />
+        )}
       </CardContent>
     </Card>
   );

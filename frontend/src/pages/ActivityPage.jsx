@@ -8,7 +8,8 @@ function ActivityPage() {
 
   useEffect(() => {
     refetch();
-  }, [refetch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (error) {
     return (

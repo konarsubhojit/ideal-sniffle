@@ -24,7 +24,7 @@ function ActivityList({ activities }) {
     }
   };
 
-  if (!activities || activities.length === 0) {
+  if (!activities?.length) {
     return (
       <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
         No activities yet.

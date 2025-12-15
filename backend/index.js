@@ -6,6 +6,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import cookieParser from 'cookie-parser';
 import { neon } from '@neondatabase/serverless';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
@@ -112,6 +113,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
+    sameSite: 'lax', // CSRF protection
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -121,6 +123,26 @@ app.use(session({
 // Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Rate limiting for API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 auth requests per windowMs
+  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
 
 // Initialize Neon database connection
 let sql;
@@ -383,10 +405,12 @@ app.get('/api/health', (req, res) => {
 
 // Auth routes
 app.get('/api/auth/google',
+  authLimiter,
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
 app.get('/api/auth/google/callback',
+  authLimiter,
   passport.authenticate('google', { failureRedirect: process.env.FRONTEND_URL || 'http://localhost:5173' }),
   (req, res) => {
     // Successful authentication, redirect to frontend

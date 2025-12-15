@@ -14,6 +14,9 @@ import logger from './utils/logger.js';
 
 const app = express();
 
+// Enable trust proxy for serverless/proxy environments (fixes X-Forwarded-For error)
+app.set('trust proxy', true);
+
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',') 
   : ['http://localhost:5173', 'http://localhost:3000'];

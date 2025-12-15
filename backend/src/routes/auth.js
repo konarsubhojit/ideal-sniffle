@@ -2,6 +2,8 @@ import express from 'express';
 import passport from 'passport';
 import rateLimit from 'express-rate-limit';
 import logger from '../utils/logger.js';
+import { generateToken } from '../utils/jwt.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -22,7 +24,18 @@ router.get('/google/callback', authLimiter,
     failureRedirect: process.env.FRONTEND_URL || 'http://localhost:5173' 
   }),
   (req, res) => {
-    res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173');
+    try {
+      // Generate JWT token for the authenticated user
+      const token = generateToken(req.user);
+      
+      // Redirect to frontend with token in URL fragment (hash)
+      // This allows the frontend to extract and store the token
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}?token=${encodeURIComponent(token)}`);
+    } catch (error) {
+      logger.error('Error generating token in OAuth callback', error);
+      res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173');
+    }
   }
 );
 
@@ -36,17 +49,14 @@ router.get('/logout', (req, res) => {
   });
 });
 
-router.get('/user', (req, res) => {
-  if (req.isAuthenticated()) {
-    res.json({
-      id: req.user.id,
-      email: req.user.email,
-      name: req.user.name,
-      picture: req.user.picture
-    });
-  } else {
-    res.status(401).json({ error: 'Not authenticated' });
-  }
+router.get('/user', requireAuth, (req, res) => {
+  // requireAuth middleware ensures req.user is set (from JWT or session)
+  res.json({
+    id: req.user.id,
+    email: req.user.email,
+    name: req.user.name,
+    picture: req.user.picture
+  });
 });
 
 export default router;

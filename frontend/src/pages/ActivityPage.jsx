@@ -1,9 +1,22 @@
-import { Card, CardContent, Typography, Box, CircularProgress } from '@mui/material';
+import { useEffect } from 'react';
+import { Card, CardContent, Typography, Box, CircularProgress, Alert } from '@mui/material';
 import { useActivities } from '../hooks/useActivities';
 import ActivityList from '../components/ActivityList';
 
 function ActivityPage() {
-  const { data: activities = [], isLoading } = useActivities(50);
+  const { data: activities = [], isLoading, error, refetch } = useActivities(50);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ mb: 3 }}>
+        Failed to load activities. Please try again.
+      </Alert>
+    );
+  }
 
   return (
     <Card>

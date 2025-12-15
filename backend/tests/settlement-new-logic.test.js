@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { calculateSettlement, calculateOptimizedSettlements, getGroups } from '../src/services/settlement.js';
 
-describe('Settlement Calculation - Group Heads Pay for All Members (NEW LOGIC)', () => {
+describe('Settlement Calculation - New Hierarchical Logic', () => {
   
-  describe('Business Rules - Updated', () => {
+  describe('Business Rules - Updated for 27 Billable Heads', () => {
     it('should have 9 groups with 21 total people', () => {
       const groups = getGroups();
       expect(groups).toHaveLength(9);
@@ -27,65 +27,72 @@ describe('Settlement Calculation - Group Heads Pay for All Members (NEW LOGIC)',
     });
   });
 
-  describe('New Fair Share Logic - Each Group Pays for All Their Members', () => {
-    it('should calculate base unit cost per person as total expense divided by 21', () => {
-      const totalExpense = 2100;
+  describe('New Hierarchical Fair Share Logic', () => {
+    it('should calculate base unit cost per billable head as total expense divided by 27', () => {
+      const totalExpense = 2700;
       const expenses = [{ paidBy: 1, amount: totalExpense.toString() }];
       const settlement = calculateSettlement(expenses);
       
-      const baseUnitCost = totalExpense / 21;
+      const baseUnitCost = totalExpense / 27;
       expect(baseUnitCost).toBe(100);
       
       const otherFamily = settlement.find(s => s.id === 1);
+      // Other Family pays baseUnitCost * 3 = 100 * 3 = 300
       expect(otherFamily.fairShare).toBe(300);
     });
 
-    it('External group (Other Family) pays for all 3 of their members', () => {
-      const totalExpense = 2100;
+    it('External group (Other Family) pays Base Unit Cost × 3', () => {
+      const totalExpense = 2700;
       const expenses = [{ paidBy: 2, amount: totalExpense.toString() }];
       
       const settlement = calculateSettlement(expenses);
       const otherFamily = settlement.find(s => s.type === 'External');
       
-      const baseUnitCost = totalExpense / 21;
+      const baseUnitCost = totalExpense / 27;
       const expectedFairShare = baseUnitCost * 3;
       
       expect(otherFamily.fairShare).toBe(expectedFairShare);
       expect(otherFamily.fairShare).toBe(300);
     });
 
-    it('Internal groups pay for all their members - group with 3 people', () => {
-      const totalExpense = 2100;
+    it('Internal groups split remaining cost equally among 18 paying members - group with 3 people', () => {
+      const totalExpense = 2700;
       const expenses = [{ paidBy: 1, amount: totalExpense.toString() }];
       
       const settlement = calculateSettlement(expenses);
       const subhojit = settlement.find(s => s.id === 2);
       
-      const baseUnitCost = totalExpense / 21;
-      const expectedFairShare = baseUnitCost * 3;
+      const baseUnitCost = totalExpense / 27;
+      const externalFairShare = baseUnitCost * 3; // 300
+      const mainFamilyTotal = totalExpense - externalFairShare; // 2400
+      const perPayingMember = mainFamilyTotal / 18; // 133.33...
+      const expectedFairShare = perPayingMember * 3; // 400
       
       expect(subhojit.count).toBe(3);
-      expect(subhojit.fairShare).toBe(expectedFairShare);
-      expect(subhojit.fairShare).toBe(300);
+      expect(subhojit.fairShare).toBeCloseTo(expectedFairShare, 2);
+      expect(subhojit.fairShare).toBeCloseTo(400, 2);
     });
 
-    it('Internal groups pay for all their members - group with 2 people', () => {
-      const totalExpense = 2100;
+    it('Internal groups split remaining cost equally among 18 paying members - group with 2 people', () => {
+      const totalExpense = 2700;
       const expenses = [{ paidBy: 1, amount: totalExpense.toString() }];
       
       const settlement = calculateSettlement(expenses);
       const abhijit = settlement.find(s => s.id === 4);
       
-      const baseUnitCost = totalExpense / 21;
-      const expectedFairShare = baseUnitCost * 2;
+      const baseUnitCost = totalExpense / 27;
+      const externalFairShare = baseUnitCost * 3; // 300
+      const mainFamilyTotal = totalExpense - externalFairShare; // 2400
+      const perPayingMember = mainFamilyTotal / 18; // 133.33...
+      const expectedFairShare = perPayingMember * 2; // 266.67...
       
       expect(abhijit.count).toBe(2);
-      expect(abhijit.fairShare).toBe(expectedFairShare);
-      expect(abhijit.fairShare).toBe(200);
+      expect(abhijit.fairShare).toBeCloseTo(expectedFairShare, 2);
+      expect(abhijit.fairShare).toBeCloseTo(266.67, 2);
     });
 
-    it('Different sized groups should have proportional fair shares', () => {
-      const totalExpense = 2100;
+    it('Internal groups with 3 people pay more than groups with 2 people', () => {
+      const totalExpense = 2700;
       const expenses = [{ paidBy: 1, amount: totalExpense.toString() }];
       
       const settlement = calculateSettlement(expenses);
@@ -101,7 +108,7 @@ describe('Settlement Calculation - Group Heads Pay for All Members (NEW LOGIC)',
     });
 
     it('Sum of all fair shares should equal total expense', () => {
-      const totalExpense = 2100;
+      const totalExpense = 2700;
       const expenses = [{ paidBy: 1, amount: totalExpense.toString() }];
       
       const settlement = calculateSettlement(expenses);
@@ -113,33 +120,33 @@ describe('Settlement Calculation - Group Heads Pay for All Members (NEW LOGIC)',
 
   describe('Balance Calculation with New Logic', () => {
     it('should calculate correct balance when Other Family overpays', () => {
-      const expenses = [{ paidBy: 1, amount: '2100' }];
+      const expenses = [{ paidBy: 1, amount: '2700' }];
       const settlement = calculateSettlement(expenses);
       const otherFamily = settlement.find(s => s.id === 1);
       
-      expect(otherFamily.totalPaid).toBe(2100);
+      expect(otherFamily.totalPaid).toBe(2700);
       expect(otherFamily.fairShare).toBe(300);
-      expect(otherFamily.balance).toBe(1800);
+      expect(otherFamily.balance).toBe(2400);
     });
 
-    it('should calculate correct balance when larger group overpays', () => {
-      const expenses = [{ paidBy: 2, amount: '2100' }];
+    it('should calculate correct balance when larger internal group overpays', () => {
+      const expenses = [{ paidBy: 2, amount: '2700' }];
       const settlement = calculateSettlement(expenses);
       const subhojit = settlement.find(s => s.id === 2);
       
-      expect(subhojit.totalPaid).toBe(2100);
-      expect(subhojit.fairShare).toBe(300);
-      expect(subhojit.balance).toBe(1800);
+      expect(subhojit.totalPaid).toBe(2700);
+      expect(subhojit.fairShare).toBeCloseTo(400, 2);
+      expect(subhojit.balance).toBeCloseTo(2300, 2);
     });
 
-    it('should calculate correct balance when smaller group overpays', () => {
-      const expenses = [{ paidBy: 4, amount: '2100' }];
+    it('should calculate correct balance when smaller internal group overpays', () => {
+      const expenses = [{ paidBy: 4, amount: '2700' }];
       const settlement = calculateSettlement(expenses);
       const abhijit = settlement.find(s => s.id === 4);
       
-      expect(abhijit.totalPaid).toBe(2100);
-      expect(abhijit.fairShare).toBe(200);
-      expect(abhijit.balance).toBe(1900);
+      expect(abhijit.totalPaid).toBe(2700);
+      expect(abhijit.fairShare).toBeCloseTo(266.67, 2);
+      expect(abhijit.balance).toBeCloseTo(2433.33, 2);
     });
 
     it('Sum of all balances should equal zero', () => {
@@ -157,25 +164,6 @@ describe('Settlement Calculation - Group Heads Pay for All Members (NEW LOGIC)',
   });
 
   describe('Complex Scenarios with New Logic', () => {
-    it('should handle equal payment scenario correctly', () => {
-      const expenses = [
-        { paidBy: 1, amount: '300' },
-        { paidBy: 2, amount: '300' },
-        { paidBy: 3, amount: '300' }
-      ];
-      
-      const totalExpense = 900;
-      const settlement = calculateSettlement(expenses);
-      
-      settlement.forEach(group => {
-        if (group.id <= 3) {
-          expect(group.totalPaid).toBe(300);
-          const expectedFairShare = (totalExpense / 21) * group.count;
-          expect(group.fairShare).toBeCloseTo(expectedFairShare, 2);
-        }
-      });
-    });
-
     it('should handle realistic multi-payer scenario', () => {
       const expenses = [
         { paidBy: 1, amount: '400' },
@@ -186,15 +174,18 @@ describe('Settlement Calculation - Group Heads Pay for All Members (NEW LOGIC)',
       
       const totalExpense = 2100;
       const settlement = calculateSettlement(expenses);
-      const baseUnitCost = totalExpense / 21;
+      const baseUnitCost = totalExpense / 27;
       
       const otherFamily = settlement.find(s => s.id === 1);
       expect(otherFamily.totalPaid).toBe(400);
       expect(otherFamily.fairShare).toBeCloseTo(baseUnitCost * 3, 2);
       expect(otherFamily.balance).toBeCloseTo(400 - (baseUnitCost * 3), 2);
       
+      const mainFamilyTotal = totalExpense - (baseUnitCost * 3);
+      const perPayingMember = mainFamilyTotal / 18;
+      
       const abhijit = settlement.find(s => s.id === 4);
-      expect(abhijit.fairShare).toBeCloseTo(baseUnitCost * 2, 2);
+      expect(abhijit.fairShare).toBeCloseTo(perPayingMember * 2, 2);
     });
 
     it('should verify total paid equals total expense', () => {
@@ -215,7 +206,7 @@ describe('Settlement Calculation - Group Heads Pay for All Members (NEW LOGIC)',
 
   describe('Optimized Settlements with New Logic', () => {
     it('should create valid transactions', () => {
-      const expenses = [{ paidBy: 1, amount: '2100' }];
+      const expenses = [{ paidBy: 1, amount: '2700' }];
       const transactions = calculateOptimizedSettlements(expenses);
       
       expect(transactions.length).toBeGreaterThan(0);
@@ -260,7 +251,7 @@ describe('Settlement Calculation - Group Heads Pay for All Members (NEW LOGIC)',
     });
 
     it('should handle single payer', () => {
-      const expenses = [{ paidBy: 5, amount: '2100' }];
+      const expenses = [{ paidBy: 5, amount: '2700' }];
       const settlement = calculateSettlement(expenses);
       
       const payer = settlement.find(s => s.id === 5);

@@ -10,7 +10,11 @@ const GROUPS = [
   { id: 9, name: "Nupur Mondol", count: 2, type: "Internal" },
 ];
 
-const TOTAL_PEOPLE = GROUPS.reduce((sum, g) => sum + g.count, 0);
+// Total people: 28 (21 from groups above + 7 additional)
+// Billable heads: 27 (one 5-year-old is free)
+// Main Family: 18 paying members subsidizing 24 people total (18 paying + 6 non-paying)
+const TOTAL_BILLABLE_HEADS = 27;
+const MAIN_FAMILY_PAYING_COUNT = 18;
 
 export function getGroups() {
   return GROUPS;
@@ -18,14 +22,34 @@ export function getGroups() {
 
 export function calculateSettlement(expenses) {
   const totalExpense = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-  const costPerPerson = totalExpense / TOTAL_PEOPLE;
+  
+  // Base unit cost per billable head
+  const baseUnitCost = totalExpense / TOTAL_BILLABLE_HEADS;
+  
+  // External group (Other Family) pays for their 3 members
+  const externalFairShare = baseUnitCost * 3;
+  
+  // Remaining expense for Main Family (Internal groups)
+  const mainFamilyTotalCost = totalExpense - externalFairShare;
+  
+  // Main Family fair share per paying member (18 paying members split the remaining cost)
+  const mainFamilyPerPayingMember = mainFamilyTotalCost / MAIN_FAMILY_PAYING_COUNT;
   
   return GROUPS.map(group => {
     const totalPaid = expenses
       .filter(exp => exp.paidBy === group.id)
       .reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
     
-    const fairShare = costPerPerson * group.count;
+    let fairShare;
+    if (group.type === 'External') {
+      // External group pays based on their headcount
+      fairShare = externalFairShare;
+    } else {
+      // Internal groups: each paying member pays their share
+      // The group head pays for all their members at the rate of mainFamilyPerPayingMember
+      fairShare = mainFamilyPerPayingMember * group.count;
+    }
+    
     const balance = totalPaid - fairShare;
     
     return {

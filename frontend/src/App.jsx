@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useCallback } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -97,7 +97,7 @@ function App() {
     if (user) {
       fetchData();
     }
-  }, [user]);
+  }, [user, fetchData]);
 
   const checkAuth = async () => {
     try {
@@ -116,7 +116,42 @@ function App() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchGroups = useCallback(async () => {
+    const response = await fetch(`${API_URL}/api/groups`);
+    if (!response.ok) throw new Error('Failed to fetch groups');
+    const data = await response.json();
+    setGroups(data);
+    if (data.length > 0 && !formData.paidBy) {
+      setFormData(prev => ({ ...prev, paidBy: data[0].id }));
+    }
+  }, [formData.paidBy]);
+
+  const fetchExpenses = useCallback(async () => {
+    const response = await fetch(`${API_URL}/api/expenses`);
+    if (!response.ok) throw new Error('Failed to fetch expenses');
+    const data = await response.json();
+    const normalizedData = data.map(exp => ({
+      ...exp,
+      amount: parseFloat(exp.amount)
+    }));
+    setExpenses(normalizedData);
+  }, []);
+
+  const fetchSettlement = useCallback(async () => {
+    const response = await fetch(`${API_URL}/api/settlement`);
+    if (!response.ok) throw new Error('Failed to fetch settlement');
+    const data = await response.json();
+    setSettlement(data);
+  }, []);
+
+  const fetchOptimizedSettlements = useCallback(async () => {
+    const response = await fetch(`${API_URL}/api/settlement/optimized`);
+    if (!response.ok) throw new Error('Failed to fetch optimized settlements');
+    const data = await response.json();
+    setOptimizedSettlements(data);
+  }, []);
+
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       await Promise.all([
@@ -132,42 +167,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchGroups = async () => {
-    const response = await fetch(`${API_URL}/api/groups`);
-    if (!response.ok) throw new Error('Failed to fetch groups');
-    const data = await response.json();
-    setGroups(data);
-    if (data.length > 0 && !formData.paidBy) {
-      setFormData(prev => ({ ...prev, paidBy: data[0].id }));
-    }
-  };
-
-  const fetchExpenses = async () => {
-    const response = await fetch(`${API_URL}/api/expenses`);
-    if (!response.ok) throw new Error('Failed to fetch expenses');
-    const data = await response.json();
-    const normalizedData = data.map(exp => ({
-      ...exp,
-      amount: parseFloat(exp.amount)
-    }));
-    setExpenses(normalizedData);
-  };
-
-  const fetchSettlement = async () => {
-    const response = await fetch(`${API_URL}/api/settlement`);
-    if (!response.ok) throw new Error('Failed to fetch settlement');
-    const data = await response.json();
-    setSettlement(data);
-  };
-
-  const fetchOptimizedSettlements = async () => {
-    const response = await fetch(`${API_URL}/api/settlement/optimized`);
-    if (!response.ok) throw new Error('Failed to fetch optimized settlements');
-    const data = await response.json();
-    setOptimizedSettlements(data);
-  };
+  }, [fetchGroups, fetchExpenses, fetchSettlement, fetchOptimizedSettlements]);
 
   const fetchActivities = async () => {
     try {

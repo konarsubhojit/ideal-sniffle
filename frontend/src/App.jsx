@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -25,9 +25,16 @@ import {
   CircularProgress,
   Chip,
   IconButton,
+  Tabs,
+  Tab,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -53,6 +60,8 @@ function App() {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedPerson, setSelectedPerson] = useState(null);
   
   const [formData, setFormData] = useState({
     paidBy: groups[0].id,
@@ -116,6 +125,52 @@ function App() {
         balance
       };
     });
+  };
+
+  // Calculate optimized settlements (reduce transactions)
+  const calculateOptimizedSettlements = () => {
+    const settlement = calculateSettlement();
+    
+    // Separate creditors (people who should receive money) and debtors (people who should pay)
+    const creditors = settlement.filter(s => s.balance > 0.01).map(s => ({
+      id: s.id,
+      name: s.name,
+      amount: s.balance
+    }));
+    
+    const debtors = settlement.filter(s => s.balance < -0.01).map(s => ({
+      id: s.id,
+      name: s.name,
+      amount: Math.abs(s.balance)
+    }));
+    
+    // Calculate optimized transactions
+    const transactions = [];
+    let i = 0, j = 0;
+    
+    while (i < creditors.length && j < debtors.length) {
+      const credit = creditors[i].amount;
+      const debt = debtors[j].amount;
+      const settled = Math.min(credit, debt);
+      
+      if (settled > 0.01) {
+        transactions.push({
+          from: debtors[j].id,
+          fromName: debtors[j].name,
+          to: creditors[i].id,
+          toName: creditors[i].name,
+          amount: settled
+        });
+      }
+      
+      creditors[i].amount -= settled;
+      debtors[j].amount -= settled;
+      
+      if (creditors[i].amount < 0.01) i++;
+      if (debtors[j].amount < 0.01) j++;
+    }
+    
+    return transactions;
   };
 
   const handleAddExpense = async (e) => {
@@ -182,8 +237,16 @@ function App() {
   };
 
   const settlement = calculateSettlement();
+  const optimizedSettlements = calculateOptimizedSettlements();
   const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const baseUnitCost = totalExpense / TOTAL_BILLABLE_HEADS;
+
+  // Get transactions for a specific person
+  const getPersonTransactions = (personId) => {
+    const toPay = optimizedSettlements.filter(t => t.from === personId);
+    const toReceive = optimizedSettlements.filter(t => t.to === personId);
+    return { toPay, toReceive };
+  };
 
   return (
     <Box sx={{ flexGrow: 1, bgcolor: '#f5f5f5', minHeight: '100vh' }}>
@@ -209,7 +272,7 @@ function App() {
           </Alert>
         )}
 
-        {/* Dashboard - Who Owes Who */}
+        {/* Dashboard with Tabs */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
@@ -246,50 +309,208 @@ function App() {
                   </Grid>
                 </Grid>
 
-                {/* Settlement Table */}
-                <TableContainer component={Paper} variant="outlined">
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 600 }}>People</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>Paid</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>Share</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>Balance</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {settlement.map(group => (
-                        <TableRow key={group.id} hover>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              {group.name}
-                              {group.type === "External" && (
-                                <Chip label="Ext" size="small" color="warning" />
-                              )}
-                            </Box>
-                          </TableCell>
-                          <TableCell align="center">{group.count}</TableCell>
-                          <TableCell align="right">₹{group.totalPaid.toFixed(2)}</TableCell>
-                          <TableCell align="right">₹{group.fairShare.toFixed(2)}</TableCell>
-                          <TableCell align="right">
-                            {group.balance > 0 ? (
-                              <Typography color="success.main" sx={{ fontWeight: 600 }}>
-                                +₹{group.balance.toFixed(2)}
-                              </Typography>
-                            ) : group.balance < 0 ? (
-                              <Typography color="error.main" sx={{ fontWeight: 600 }}>
-                                -₹{Math.abs(group.balance).toFixed(2)}
-                              </Typography>
-                            ) : (
-                              <Typography color="text.secondary">₹0.00</Typography>
-                            )}
-                          </TableCell>
+                {/* Tabs for different views */}
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                  <Tabs value={selectedTab} onChange={(e, newValue) => setSelectedTab(newValue)}>
+                    <Tab label="Summary" />
+                    <Tab label="Settlements" />
+                    <Tab label="By Person" />
+                  </Tabs>
+                </Box>
+
+                {/* Tab 0: Summary Table */}
+                {selectedTab === 0 && (
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 600 }}>Person</TableCell>
+                          <TableCell align="center" sx={{ fontWeight: 600 }}>People</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Paid</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Share</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Balance</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </TableHead>
+                      <TableBody>
+                        {settlement.map(group => (
+                          <TableRow key={group.id} hover>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {group.name}
+                                {group.type === "External" && (
+                                  <Chip label="Ext" size="small" color="warning" />
+                                )}
+                              </Box>
+                            </TableCell>
+                            <TableCell align="center">{group.count}</TableCell>
+                            <TableCell align="right">₹{group.totalPaid.toFixed(2)}</TableCell>
+                            <TableCell align="right">₹{group.fairShare.toFixed(2)}</TableCell>
+                            <TableCell align="right">
+                              {group.balance > 0 ? (
+                                <Typography color="success.main" sx={{ fontWeight: 600 }}>
+                                  +₹{group.balance.toFixed(2)}
+                                </Typography>
+                              ) : group.balance < 0 ? (
+                                <Typography color="error.main" sx={{ fontWeight: 600 }}>
+                                  -₹{Math.abs(group.balance).toFixed(2)}
+                                </Typography>
+                              ) : (
+                                <Typography color="text.secondary">₹0.00</Typography>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+
+                {/* Tab 1: Optimized Settlements */}
+                {selectedTab === 1 && (
+                  <Paper variant="outlined" sx={{ p: 3 }}>
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+                      Optimized Settlement Plan ({optimizedSettlements.length} transaction{optimizedSettlements.length !== 1 ? 's' : ''})
+                    </Typography>
+                    {optimizedSettlements.length === 0 ? (
+                      <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+                        All settled! No payments needed.
+                      </Typography>
+                    ) : (
+                      <List>
+                        {optimizedSettlements.map((transaction, index) => (
+                          <Fragment key={index}>
+                            <ListItem sx={{ px: 0 }}>
+                              <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Chip 
+                                  label={transaction.fromName} 
+                                  color="error" 
+                                  variant="outlined"
+                                  sx={{ minWidth: 150 }}
+                                />
+                                <ArrowForwardIcon color="action" />
+                                <Chip 
+                                  label={transaction.toName} 
+                                  color="success" 
+                                  variant="outlined"
+                                  sx={{ minWidth: 150 }}
+                                />
+                                <Box sx={{ ml: 'auto' }}>
+                                  <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
+                                    ₹{transaction.amount.toFixed(2)}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </ListItem>
+                            {index < optimizedSettlements.length - 1 && <Divider />}
+                          </Fragment>
+                        ))}
+                      </List>
+                    )}
+                  </Paper>
+                )}
+
+                {/* Tab 2: By Person View */}
+                {selectedTab === 2 && (
+                  <Box>
+                    <FormControl fullWidth sx={{ mb: 3 }}>
+                      <InputLabel>Select Person</InputLabel>
+                      <Select
+                        value={selectedPerson || ''}
+                        label="Select Person"
+                        onChange={(e) => setSelectedPerson(e.target.value)}
+                      >
+                        {groups.map(group => (
+                          <MenuItem key={group.id} value={group.id}>
+                            {group.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    {selectedPerson && (
+                      <Paper variant="outlined" sx={{ p: 3 }}>
+                        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+                          {groups.find(g => g.id === selectedPerson)?.name}'s Transactions
+                        </Typography>
+
+                        {(() => {
+                          const { toPay, toReceive } = getPersonTransactions(selectedPerson);
+                          const personBalance = settlement.find(s => s.id === selectedPerson)?.balance || 0;
+
+                          return (
+                            <>
+                              <Box sx={{ mb: 3, p: 2, bgcolor: personBalance > 0 ? '#e8f5e9' : personBalance < 0 ? '#ffebee' : '#f5f5f5', borderRadius: 1 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  Net Balance
+                                </Typography>
+                                <Typography variant="h4" sx={{ fontWeight: 600, color: personBalance > 0 ? 'success.main' : personBalance < 0 ? 'error.main' : 'text.secondary' }}>
+                                  {personBalance > 0 ? '+' : ''}₹{personBalance.toFixed(2)}
+                                </Typography>
+                                <Typography variant="body2" sx={{ mt: 1 }}>
+                                  {personBalance > 0 ? '(Will receive)' : personBalance < 0 ? '(Needs to pay)' : '(All settled)'}
+                                </Typography>
+                              </Box>
+
+                              {toPay.length > 0 && (
+                                <Box sx={{ mb: 3 }}>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: 'error.main' }}>
+                                    To Pay:
+                                  </Typography>
+                                  <List>
+                                    {toPay.map((transaction, index) => (
+                                      <ListItem key={index} sx={{ px: 0, py: 1 }}>
+                                        <ListItemText
+                                          primary={
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                              <Typography>Pay to <strong>{transaction.toName}</strong></Typography>
+                                              <Typography variant="h6" color="error.main" sx={{ fontWeight: 600 }}>
+                                                ₹{transaction.amount.toFixed(2)}
+                                              </Typography>
+                                            </Box>
+                                          }
+                                        />
+                                      </ListItem>
+                                    ))}
+                                  </List>
+                                </Box>
+                              )}
+
+                              {toReceive.length > 0 && (
+                                <Box>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: 'success.main' }}>
+                                    To Receive:
+                                  </Typography>
+                                  <List>
+                                    {toReceive.map((transaction, index) => (
+                                      <ListItem key={index} sx={{ px: 0, py: 1 }}>
+                                        <ListItemText
+                                          primary={
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                              <Typography>Receive from <strong>{transaction.fromName}</strong></Typography>
+                                              <Typography variant="h6" color="success.main" sx={{ fontWeight: 600 }}>
+                                                ₹{transaction.amount.toFixed(2)}
+                                              </Typography>
+                                            </Box>
+                                          }
+                                        />
+                                      </ListItem>
+                                    ))}
+                                  </List>
+                                </Box>
+                              )}
+
+                              {toPay.length === 0 && toReceive.length === 0 && (
+                                <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+                                  All settled! No transactions needed.
+                                </Typography>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </Paper>
+                    )}
+                  </Box>
+                )}
               </>
             )}
           </CardContent>

@@ -1,16 +1,9 @@
-import { useState } from 'react';
-import { Card, CardContent, Typography, Button } from '@mui/material';
+import { Card, CardContent, Typography, Box, CircularProgress } from '@mui/material';
 import { useActivities } from '../hooks/useActivities';
-import ActivityLogDialog from '../components/ActivityLogDialog';
+import ActivityList from '../components/ActivityList';
 
 function ActivityPage() {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const { data: activities = [], refetch, isLoading } = useActivities(50);
-
-  const handleOpenDialog = async () => {
-    await refetch();
-    setDialogOpen(true);
-  };
+  const { data: activities = [], isLoading } = useActivities(50);
 
   return (
     <Card>
@@ -23,19 +16,13 @@ function ActivityPage() {
           View all recent activity and changes made to expenses.
         </Typography>
 
-        <Button 
-          variant="contained" 
-          onClick={handleOpenDialog}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Loading...' : 'View Activity Log'}
-        </Button>
-
-        <ActivityLogDialog
-          open={dialogOpen}
-          activities={activities}
-          onClose={() => setDialogOpen(false)}
-        />
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <ActivityList activities={activities} />
+        )}
       </CardContent>
     </Card>
   );

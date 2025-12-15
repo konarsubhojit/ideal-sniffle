@@ -50,6 +50,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import { getToken, setToken, removeToken, authFetch } from './utils/auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -86,10 +87,28 @@ function App() {
   // Constants
   const TOTAL_BILLABLE_HEADS = 27;
 
-  // Fetch user authentication status
+  // Extract token from URL hash on OAuth callback (runs once on mount)
   useEffect(() => {
-    checkAuth();
-  }, []);
+    const hash = window.location.hash;
+    if (hash && hash.includes('token=')) {
+      // Extract token from hash fragment (format: #token=xyz)
+      const tokenMatch = hash.match(/token=([^&]+)/);
+      if (tokenMatch && tokenMatch[1]) {
+        const token = decodeURIComponent(tokenMatch[1]);
+        // Store the token
+        setToken(token);
+        
+        // Clean up the URL hash
+        window.location.hash = '';
+        
+        // Trigger auth check with new token
+        checkAuthWithToken();
+      }
+    } else {
+      // Normal page load - check existing auth
+      checkAuthWithToken();
+    }
+  }, []); // Empty dependency array - runs once on mount
 
   // Fetch data when authenticated
   useEffect(() => {
@@ -99,20 +118,21 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const checkAuth = async () => {
+  const checkAuthWithToken = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/user`, {
-        credentials: 'include'
-      });
+      const response = await authFetch(`${API_URL}/api/auth/user`);
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
       } else {
         setUser(null);
+        // Clear token if authentication fails
+        removeToken();
       }
     } catch (error) {
       console.error('Error checking auth:', error);
       setUser(null);
+      removeToken();
     }
   };
 
@@ -175,9 +195,7 @@ function App() {
 
   const fetchActivities = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/activity?limit=50`, {
-        credentials: 'include'
-      });
+      const response = await authFetch(`${API_URL}/api/activity?limit=50`);
       if (!response.ok) throw new Error('Failed to fetch activities');
       const data = await response.json();
       setActivities(data);
@@ -192,11 +210,10 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_URL}/api/auth/logout`, {
-        credentials: 'include'
-      });
+      await authFetch(`${API_URL}/api/auth/logout`);
       setUser(null);
       setUserMenuAnchor(null);
+      removeToken();
       window.location.reload();
     } catch (error) {
       console.error('Error logging out:', error);
@@ -208,12 +225,8 @@ function App() {
     if (!formData.amount || formData.amount <= 0) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/expenses`, {
+      const response = await authFetch(`${API_URL}/api/expenses`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
         body: JSON.stringify({
           paidBy: formData.paidBy,
           amount: parseFloat(formData.amount),
@@ -247,12 +260,8 @@ function App() {
     if (!editFormData.amount || editFormData.amount <= 0) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/expenses/${editingExpense.id}`, {
+      const response = await authFetch(`${API_URL}/api/expenses/${editingExpense.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
         body: JSON.stringify({
           paidBy: editFormData.paidBy,
           amount: parseFloat(editFormData.amount),
@@ -277,9 +286,8 @@ function App() {
     if (!window.confirm('Are you sure you want to delete this expense?')) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/expenses/${id}`, {
+      const response = await authFetch(`${API_URL}/api/expenses/${id}`, {
         method: 'DELETE',
-        credentials: 'include'
       });
       
       if (!response.ok) throw new Error('Failed to delete expense');
@@ -297,9 +305,8 @@ function App() {
     if (!window.confirm('Are you sure you want to reset all data?')) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/expenses`, {
+      const response = await authFetch(`${API_URL}/api/expenses`, {
         method: 'DELETE',
-        credentials: 'include'
       });
       
       if (!response.ok) throw new Error('Failed to reset expenses');

@@ -56,11 +56,14 @@ Open `http://localhost:5173`
 ## Features
 
 - ✅ **Google Authentication** - JWT-based secure login
-- ✅ **Expense Management** - Full CRUD operations
+- ✅ **Role-Based Access Control** - Admin, Contributor, Reader roles with proper authorization
+- ✅ **Expense Management** - Full CRUD operations with soft-delete
+- ✅ **Configurable Groups** - Database-driven groups instead of hardcoded values
 - ✅ **Activity Log** - Complete audit trail
 - ✅ **Settlement Calculations** - Fair share with optimized payment plans
 - ✅ **User Tracking** - Track who added/edited/deleted expenses
 - ✅ **Data Persistence** - PostgreSQL via Neon
+- ✅ **Enhanced UX** - Toast notifications, better dialogs, role badges
 
 ## Tech Stack
 
@@ -84,10 +87,13 @@ Open `http://localhost:5173`
 │   │   ├── config/      # Database & OAuth config
 │   │   ├── routes/      # API endpoints
 │   │   ├── services/    # Business logic
-│   │   ├── middleware/  # Auth & logging
-│   │   └── utils/       # Utilities
+│   │   ├── middleware/  # Auth, logging & authorization
+│   │   └── utils/       # Utilities & migrations
+│   ├── scripts/        # Management scripts (role management)
 │   ├── tests/          # Test files (20 tests)
 │   └── package.json
+├── RBAC_GUIDE.md       # Role-based access control documentation
+├── DEPLOYMENT_CHECKLIST.md  # Deployment guide
 ├── PROJECT.md          # Complete documentation
 └── README.md           # This file
 ```
@@ -111,20 +117,48 @@ See [PROJECT.md - API Endpoints](./PROJECT.md#api-endpoints) for complete API do
 
 ### Quick Reference
 - **Auth**: `/api/auth/*` - Google OAuth login/logout
-- **Expenses**: `/api/expenses` - CRUD operations
-- **Settlements**: `/api/settlement/*` - Calculations
-- **Activity**: `/api/activity` - Audit log
+- **Expenses**: `/api/expenses` - CRUD operations (requires role)
+- **Groups**: `/api/groups` - Group management (requires role)
+- **Settlements**: `/api/settlement/*` - Calculations (requires role)
+- **Activity**: `/api/activity` - Audit log (requires role)
 - **Health**: `/api/health` - Health check
+
+## Role Management
+
+This app uses role-based access control. See [RBAC_GUIDE.md](./RBAC_GUIDE.md) for details.
+
+### Quick Role Assignment
+
+After first deployment, assign yourself as admin:
+
+```bash
+# Using the management script
+cd backend
+node scripts/manage-roles.js list
+node scripts/manage-roles.js assign your-email@example.com admin
+
+# Or via SQL in Neon console
+UPDATE users SET role = 'admin' WHERE email = 'your-email@example.com';
+```
+
+### Roles
+- **Admin** - Full access
+- **Contributor** - Can create/edit/delete expenses and groups
+- **Reader** - Read-only access
+- **No role** - 403 Forbidden
 
 ## Deployment
 
-See [PROJECT.md - Deployment](./PROJECT.md#deployment) for Vercel deployment guide.
+See [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) for step-by-step deployment guide.
+
+Also see [PROJECT.md - Deployment](./PROJECT.md#deployment) for Vercel deployment details.
 
 ### Quick Deploy
 1. Deploy backend to Vercel (set root: `backend`)
 2. Deploy frontend to Vercel (set root: `frontend`)
 3. Configure environment variables
 4. Update Google OAuth redirect URIs
+5. **IMPORTANT**: Assign admin role to at least one user (see Role Management above)
 
 ## Testing
 

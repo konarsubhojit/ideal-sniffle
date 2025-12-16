@@ -3,28 +3,18 @@ import {
   Paper,
   Typography,
   IconButton,
-  Button,
+  Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 
-function ExpenseList({ expenses = [], groups = [], onEdit, onDelete, onReset }) {
+function ExpenseList({ expenses = [], groups = [], onEdit, onDelete }) {
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
           Expense History
         </Typography>
-        {expenses.length > 0 && (
-          <Button
-            variant="contained"
-            color="error"
-            size="small"
-            onClick={onReset}
-          >
-            Reset All
-          </Button>
-        )}
       </Box>
       
       {expenses.length === 0 ? (
@@ -45,16 +35,26 @@ function ExpenseList({ expenses = [], groups = [], onEdit, onDelete, onReset }) 
                   gap: { xs: 1, sm: 2 }
                 }}>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        fontWeight: 500,
-                        fontSize: { xs: '0.95rem', sm: '1rem' },
-                        wordBreak: 'break-word'
-                      }}
-                    >
-                      {expense.description}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Typography 
+                        variant="body1" 
+                        sx={{ 
+                          fontWeight: 500,
+                          fontSize: { xs: '0.95rem', sm: '1rem' },
+                          wordBreak: 'break-word'
+                        }}
+                      >
+                        {expense.description}
+                      </Typography>
+                      {expense.category && (
+                        <Chip 
+                          label={expense.category} 
+                          size="small" 
+                          color="primary"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                       Paid by: {payer?.name || 'Unknown'}
                     </Typography>

@@ -6,13 +6,22 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { requestLogger } from './middleware/logger.js';
 import { configurePassport } from './config/passport.js';
+import { runMigrations } from './utils/migrations.js';
 import authRoutes from './routes/auth.js';
 import expensesRoutes from './routes/expenses.js';
 import settlementRoutes from './routes/settlement.js';
 import activityRoutes from './routes/activity.js';
+import groupsRoutes from './routes/groups.js';
+import usersRoutes from './routes/users.js';
 import logger from './utils/logger.js';
 
 const app = express();
+
+// Run database migrations on startup
+runMigrations().catch(error => {
+  logger.error('Failed to run migrations', error);
+  // Don't exit - allow app to start even if migrations fail (they might already be applied)
+});
 
 // Enable trust proxy for serverless/proxy environments (fixes X-Forwarded-For error)
 app.set('trust proxy', true);
@@ -84,6 +93,8 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expensesRoutes);
+app.use('/api/groups', groupsRoutes);
+app.use('/api/users', usersRoutes);
 app.use('/api', settlementRoutes);
 app.use('/api/activity', activityRoutes);
 

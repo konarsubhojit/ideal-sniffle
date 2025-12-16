@@ -128,22 +128,59 @@ export function useDeleteExpense() {
   });
 }
 
-// Delete all expenses mutation
-export function useDeleteAllExpenses() {
+// Groups mutations
+export function useAddGroup() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async () => {
-      const response = await authFetch(`${API_URL}/api/expenses`, {
-        method: 'DELETE',
+    mutationFn: async (groupData) => {
+      const response = await authFetch(`${API_URL}/api/groups`, {
+        method: 'POST',
+        body: JSON.stringify(groupData),
       });
-      if (!response.ok) throw new Error('Failed to reset expenses');
+      if (!response.ok) throw new Error('Failed to add group');
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['settlement'] });
-      queryClient.invalidateQueries({ queryKey: ['optimizedSettlements'] });
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+export function useUpdateGroup() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...groupData }) => {
+      const response = await authFetch(`${API_URL}/api/groups/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(groupData),
+      });
+      if (!response.ok) throw new Error('Failed to update group');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+export function useDeleteGroup() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id) => {
+      const response = await authFetch(`${API_URL}/api/groups/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete group');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
   });
 }

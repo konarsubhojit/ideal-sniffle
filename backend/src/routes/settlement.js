@@ -1,6 +1,8 @@
 import express from 'express';
 import { neon } from '@neondatabase/serverless';
 import { getGroups, calculateSettlement, calculateOptimizedSettlements } from '../services/settlement.js';
+import { requireAuth } from '../middleware/auth.js';
+import { requireRole } from '../middleware/authorization.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
@@ -9,12 +11,23 @@ function getSql() {
   return neon(process.env.DATABASE_URL);
 }
 
-router.get('/groups', (req, res) => {
-  logger.info('Fetching groups');
-  res.json(getGroups());
+router.get('/groups', requireAuth, requireRole, async (req, res) => {
+  try {
+    logger.info('Fetching groups from database');
+    const sql = getSql();
+    const groups = await sql`
+      SELECT id, name, count, type
+      FROM groups
+      ORDER BY id
+    `;
+    res.json(groups);
+  } catch (error) {
+    logger.error('Error fetching groups', error);
+    res.status(500).json({ error: 'Failed to fetch groups' });
+  }
 });
 
-router.get('/settlement', async (req, res) => {
+router.get('/settlement', requireAuth, requireRole, async (req, res) => {
   try {
     logger.info('Calculating settlement');
     
@@ -22,9 +35,16 @@ router.get('/settlement', async (req, res) => {
     const expenses = await sql`
       SELECT id, paid_by as "paidBy", amount, description
       FROM expenses
+      WHERE deleted_at IS NULL
     `;
     
-    const settlement = calculateSettlement(expenses);
+    const groups = await sql`
+      SELECT id, name, count, type
+      FROM groups
+      ORDER BY id
+    `;
+    
+    const settlement = calculateSettlement(expenses, groups);
     
     logger.info('Settlement calculated successfully');
     res.json(settlement);
@@ -34,7 +54,7 @@ router.get('/settlement', async (req, res) => {
   }
 });
 
-router.get('/settlement/optimized', async (req, res) => {
+router.get('/settlement/optimized', requireAuth, requireRole, async (req, res) => {
   try {
     logger.info('Calculating optimized settlements');
     
@@ -42,9 +62,16 @@ router.get('/settlement/optimized', async (req, res) => {
     const expenses = await sql`
       SELECT id, paid_by as "paidBy", amount, description
       FROM expenses
+      WHERE deleted_at IS NULL
     `;
     
-    const optimizedSettlements = calculateOptimizedSettlements(expenses);
+    const groups = await sql`
+      SELECT id, name, count, type
+      FROM groups
+      ORDER BY id
+    `;
+    
+    const optimizedSettlements = calculateOptimizedSettlements(expenses, groups);
     
     logger.info('Optimized settlements calculated successfully', { 
       transactionCount: optimizedSettlements.length 

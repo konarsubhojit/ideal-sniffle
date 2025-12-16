@@ -1,3 +1,5 @@
+import { neon } from '@neondatabase/serverless';
+
 const GROUPS = [
   { id: 1, name: "Other Family", count: 3, type: "External" },
   { id: 2, name: "Subhojit Konar", count: 3, type: "Internal" },
@@ -16,26 +18,64 @@ const GROUPS = [
 const TOTAL_BILLABLE_HEADS = 27;
 const MAIN_FAMILY_PAYING_COUNT = 18;
 
+function getSql() {
+  return neon(process.env.DATABASE_URL);
+}
+
+// Fetch groups from database
+export async function getGroupsFromDb() {
+  try {
+    const sql = getSql();
+    const groups = await sql`
+      SELECT id, name, count, type
+      FROM groups
+      ORDER BY id
+    `;
+    return groups;
+  } catch (error) {
+    console.error('Error fetching groups from database, using hardcoded fallback', error);
+    return GROUPS;
+  }
+}
+
+// Legacy function for backward compatibility
 export function getGroups() {
   return GROUPS;
 }
 
-export function calculateSettlement(expenses) {
+export function calculateSettlement(expenses, groups = GROUPS) {
   const totalExpense = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
   
-  // Base unit cost per billable head
-  const baseUnitCost = totalExpense / TOTAL_BILLABLE_HEADS;
+  // Calculate total billable heads and paying members dynamically
+  const externalGroups = groups.filter(g => g.type === 'External');
+  const internalGroups = groups.filter(g => g.type === 'Internal');
   
-  // External group (Other Family) pays for their 3 members
-  const externalFairShare = baseUnitCost * 3;
+  const externalHeadCount = externalGroups.reduce((sum, g) => sum + g.count, 0);
+  const internalPayingCount = internalGroups.reduce((sum, g) => sum + g.count, 0);
+  const totalBillableHeads = externalHeadCount + internalPayingCount;
+  
+  if (totalBillableHeads === 0) {
+    return groups.map(group => ({
+      ...group,
+      totalPaid: 0,
+      fairShare: 0,
+      balance: 0
+    }));
+  }
+  
+  // Base unit cost per billable head
+  const baseUnitCost = totalExpense / totalBillableHeads;
+  
+  // External groups pay for their members
+  const externalFairShare = baseUnitCost * externalHeadCount;
   
   // Remaining expense for Main Family (Internal groups)
   const mainFamilyTotalCost = totalExpense - externalFairShare;
   
-  // Main Family fair share per paying member (18 paying members split the remaining cost)
-  const mainFamilyPerPayingMember = mainFamilyTotalCost / MAIN_FAMILY_PAYING_COUNT;
+  // Main Family fair share per paying member
+  const mainFamilyPerPayingMember = internalPayingCount > 0 ? mainFamilyTotalCost / internalPayingCount : 0;
   
-  return GROUPS.map(group => {
+  return groups.map(group => {
     const totalPaid = expenses
       .filter(exp => exp.paidBy === group.id)
       .reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
@@ -43,7 +83,7 @@ export function calculateSettlement(expenses) {
     let fairShare;
     if (group.type === 'External') {
       // External group pays based on their headcount
-      fairShare = externalFairShare;
+      fairShare = baseUnitCost * group.count;
     } else {
       // Internal groups: each paying member pays their share
       // The group head pays for all their members at the rate of mainFamilyPerPayingMember
@@ -61,8 +101,8 @@ export function calculateSettlement(expenses) {
   });
 }
 
-export function calculateOptimizedSettlements(expenses) {
-  const settlement = calculateSettlement(expenses);
+export function calculateOptimizedSettlements(expenses, groups = GROUPS) {
+  const settlement = calculateSettlement(expenses, groups);
   
   const creditors = settlement
     .filter(s => s.balance > 0.01)

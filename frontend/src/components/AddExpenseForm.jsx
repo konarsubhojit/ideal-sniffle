@@ -11,10 +11,21 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 
 function AddExpenseForm({ groups, formData, onFormChange, onSubmit }) {
+  const categories = [
+    'Food & Dining',
+    'Transportation',
+    'Shopping',
+    'Entertainment',
+    'Utilities',
+    'Healthcare',
+    'Travel',
+    'Other'
+  ];
+
   return (
     <Box component="form" onSubmit={onSubmit}>
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <FormControl fullWidth>
             <InputLabel>Who Paid?</InputLabel>
             <Select
@@ -31,7 +42,7 @@ function AddExpenseForm({ groups, formData, onFormChange, onSubmit }) {
           </FormControl>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <TextField
             fullWidth
             label="Amount (₹)"
@@ -43,7 +54,27 @@ function AddExpenseForm({ groups, formData, onFormChange, onSubmit }) {
           />
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <FormControl fullWidth>
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={formData.category || ''}
+              label="Category"
+              onChange={(e) => onFormChange({ ...formData, category: e.target.value })}
+            >
+              <MenuItem value="">
+                <em>None</em>
+              </MenuItem>
+              {categories.map(category => (
+                <MenuItem key={category} value={category}>
+                  {category}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={2.4}>
           <TextField
             fullWidth
             label="Description"
@@ -53,7 +84,7 @@ function AddExpenseForm({ groups, formData, onFormChange, onSubmit }) {
           />
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Button
             type="submit"
             variant="contained"

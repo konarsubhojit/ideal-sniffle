@@ -66,6 +66,19 @@ export function useGroups() {
   });
 }
 
+// Fetch single group with members
+export function useGroup(groupId) {
+  return useQuery({
+    queryKey: ['groups', groupId],
+    queryFn: async () => {
+      const response = await authFetch(`${API_URL}/api/groups/${groupId}`);
+      if (!response.ok) throw new Error('Failed to fetch group');
+      return response.json();
+    },
+    enabled: !!groupId,
+  });
+}
+
 // Add expense mutation
 export function useAddExpense() {
   const queryClient = useQueryClient();
@@ -181,6 +194,63 @@ export function useDeleteGroup() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+// Group member mutations
+export function useAddGroupMember() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ groupId, ...memberData }) => {
+      const response = await authFetch(`${API_URL}/api/groups/${groupId}/members`, {
+        method: 'POST',
+        body: JSON.stringify(memberData),
+      });
+      if (!response.ok) throw new Error('Failed to add member');
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['groups', variables.groupId] });
+    },
+  });
+}
+
+export function useUpdateGroupMember() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ groupId, memberId, ...memberData }) => {
+      const response = await authFetch(`${API_URL}/api/groups/${groupId}/members/${memberId}`, {
+        method: 'PUT',
+        body: JSON.stringify(memberData),
+      });
+      if (!response.ok) throw new Error('Failed to update member');
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['groups', variables.groupId] });
+    },
+  });
+}
+
+export function useDeleteGroupMember() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ groupId, memberId }) => {
+      const response = await authFetch(`${API_URL}/api/groups/${groupId}/members/${memberId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete member');
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['groups', variables.groupId] });
     },
   });
 }

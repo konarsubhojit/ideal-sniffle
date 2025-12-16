@@ -8,7 +8,7 @@ export function useInfiniteExpenses(perPage = 20) {
   return useInfiniteQuery({
     queryKey: ['expenses'],
     queryFn: async ({ pageParam = 1 }) => {
-      const response = await fetch(`${API_URL}/api/expenses?page=${pageParam}&limit=${perPage}`);
+      const response = await authFetch(`${API_URL}/api/expenses?page=${pageParam}&limit=${perPage}`);
       if (!response.ok) throw new Error('Failed to fetch expenses');
       const data = await response.json();
       
@@ -34,7 +34,7 @@ export function useExpenses() {
   return useQuery({
     queryKey: ['expenses'],
     queryFn: async () => {
-      const response = await fetch(`${API_URL}/api/expenses`);
+      const response = await authFetch(`${API_URL}/api/expenses`);
       if (!response.ok) throw new Error('Failed to fetch expenses');
       const data = await response.json();
       
@@ -59,7 +59,7 @@ export function useGroups() {
   return useQuery({
     queryKey: ['groups'],
     queryFn: async () => {
-      const response = await fetch(`${API_URL}/api/groups`);
+      const response = await authFetch(`${API_URL}/api/groups`);
       if (!response.ok) throw new Error('Failed to fetch groups');
       return response.json();
     },

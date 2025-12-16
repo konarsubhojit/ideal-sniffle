@@ -102,6 +102,40 @@ export async function runMigrations() {
       logger.info('Groups already exist in database, skipping migration');
     }
     
+    // Add exclusion flags to group_members table
+    try {
+      // First, add columns as nullable with default values
+      await sql`
+        ALTER TABLE group_members 
+        ADD COLUMN IF NOT EXISTS exclude_from_all_headcount INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS exclude_from_internal_headcount INTEGER DEFAULT 0
+      `;
+      
+      // Update any existing NULL values to 0 (shouldn't be any, but just in case)
+      await sql`
+        UPDATE group_members 
+        SET exclude_from_all_headcount = 0 
+        WHERE exclude_from_all_headcount IS NULL
+      `;
+      
+      await sql`
+        UPDATE group_members 
+        SET exclude_from_internal_headcount = 0 
+        WHERE exclude_from_internal_headcount IS NULL
+      `;
+      
+      // Now apply NOT NULL constraints
+      await sql`
+        ALTER TABLE group_members 
+        ALTER COLUMN exclude_from_all_headcount SET NOT NULL,
+        ALTER COLUMN exclude_from_internal_headcount SET NOT NULL
+      `;
+      
+      logger.info('Exclusion flags added to group_members table');
+    } catch (error) {
+      logger.warn('Exclusion flags migration issue', error.message);
+    }
+    
     logger.info('Database migrations completed successfully');
   } catch (error) {
     logger.error('Error running migrations', error);

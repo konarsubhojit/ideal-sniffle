@@ -22,7 +22,7 @@ function getSql() {
   return neon(process.env.DATABASE_URL);
 }
 
-// Fetch groups from database
+// Fetch groups from database with member exclusion info
 export async function getGroupsFromDb() {
   try {
     const sql = getSql();
@@ -31,10 +31,51 @@ export async function getGroupsFromDb() {
       FROM groups
       ORDER BY id
     `;
+    
+    // Fetch members for each group to calculate actual billable counts
+    for (const group of groups) {
+      const members = await sql`
+        SELECT 
+          id, 
+          name, 
+          is_paying as "isPaying",
+          exclude_from_all_headcount as "excludeFromAllHeadcount",
+          exclude_from_internal_headcount as "excludeFromInternalHeadcount"
+        FROM group_members
+        WHERE group_id = ${group.id}
+      `;
+      
+      group.members = members;
+      
+      // Calculate billable counts based on exclusion flags
+      // If there are no members defined, use the group count
+      if (members.length === 0) {
+        group.billableCount = group.count;
+        group.internalBillableCount = group.count;
+      } else {
+        // Count members not excluded from all headcount
+        group.billableCount = members.filter(m => !m.excludeFromAllHeadcount).length;
+        
+        // For internal groups, count members not excluded from internal headcount
+        if (group.type === 'Internal') {
+          group.internalBillableCount = members.filter(
+            m => !m.excludeFromAllHeadcount && !m.excludeFromInternalHeadcount
+          ).length;
+        } else {
+          group.internalBillableCount = group.billableCount;
+        }
+      }
+    }
+    
     return groups;
   } catch (error) {
     console.error('Error fetching groups from database, using hardcoded fallback', error);
-    return GROUPS;
+    return GROUPS.map(g => ({
+      ...g,
+      billableCount: g.count,
+      internalBillableCount: g.count,
+      members: []
+    }));
   }
 }
 
@@ -50,8 +91,9 @@ export function calculateSettlement(expenses, groups = GROUPS) {
   const externalGroups = groups.filter(g => g.type === 'External');
   const internalGroups = groups.filter(g => g.type === 'Internal');
   
-  const externalHeadCount = externalGroups.reduce((sum, g) => sum + g.count, 0);
-  const internalPayingCount = internalGroups.reduce((sum, g) => sum + g.count, 0);
+  // Use billableCount if available (from database with member exclusions), otherwise use count
+  const externalHeadCount = externalGroups.reduce((sum, g) => sum + (g.billableCount ?? g.count), 0);
+  const internalPayingCount = internalGroups.reduce((sum, g) => sum + (g.internalBillableCount ?? g.count), 0);
   const totalBillableHeads = externalHeadCount + internalPayingCount;
   
   if (totalBillableHeads === 0) {
@@ -82,12 +124,12 @@ export function calculateSettlement(expenses, groups = GROUPS) {
     
     let fairShare;
     if (group.type === 'External') {
-      // External group pays based on their headcount
-      fairShare = baseUnitCost * group.count;
+      // External group pays based on their billable headcount
+      fairShare = baseUnitCost * (group.billableCount ?? group.count);
     } else {
       // Internal groups: each paying member pays their share
-      // The group head pays for all their members at the rate of mainFamilyPerPayingMember
-      fairShare = mainFamilyPerPayingMember * group.count;
+      // Use internalBillableCount for internal groups
+      fairShare = mainFamilyPerPayingMember * (group.internalBillableCount ?? group.count);
     }
     
     const balance = totalPaid - fairShare;

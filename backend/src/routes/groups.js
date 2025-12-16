@@ -74,7 +74,12 @@ router.get('/:id', requireAuth, requireRole, async (req, res) => {
     }
     
     const members = await sql`
-      SELECT id, name, is_paying as "isPaying"
+      SELECT 
+        id, 
+        name, 
+        is_paying as "isPaying",
+        exclude_from_all_headcount as "excludeFromAllHeadcount",
+        exclude_from_internal_headcount as "excludeFromInternalHeadcount"
       FROM group_members
       WHERE group_id = ${id}
       ORDER BY id
@@ -112,8 +117,20 @@ router.post('/', requireAuth, requireContributor, async (req, res) => {
     if (members && Array.isArray(members) && members.length > 0) {
       for (const member of members) {
         await sql`
-          INSERT INTO group_members (group_id, name, is_paying)
-          VALUES (${group.id}, ${member.name}, ${member.isPaying ? 1 : 0})
+          INSERT INTO group_members (
+            group_id, 
+            name, 
+            is_paying, 
+            exclude_from_all_headcount, 
+            exclude_from_internal_headcount
+          )
+          VALUES (
+            ${group.id}, 
+            ${member.name}, 
+            ${member.isPaying ? 1 : 0},
+            ${member.excludeFromAllHeadcount ? 1 : 0},
+            ${member.excludeFromInternalHeadcount ? 1 : 0}
+          )
         `;
       }
     }
@@ -241,7 +258,7 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
 router.post('/:id/members', requireAuth, requireContributor, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, isPaying } = req.body;
+    const { name, isPaying, excludeFromAllHeadcount, excludeFromInternalHeadcount } = req.body;
     const userId = req.user.id;
     
     if (!name) {
@@ -250,21 +267,97 @@ router.post('/:id/members', requireAuth, requireContributor, async (req, res) =>
     
     const sql = getSql();
     const result = await sql`
-      INSERT INTO group_members (group_id, name, is_paying)
-      VALUES (${id}, ${name}, ${isPaying ? 1 : 0})
-      RETURNING id, name, is_paying as "isPaying"
+      INSERT INTO group_members (
+        group_id, 
+        name, 
+        is_paying, 
+        exclude_from_all_headcount, 
+        exclude_from_internal_headcount
+      )
+      VALUES (
+        ${id}, 
+        ${name}, 
+        ${isPaying ? 1 : 0},
+        ${excludeFromAllHeadcount ? 1 : 0},
+        ${excludeFromInternalHeadcount ? 1 : 0}
+      )
+      RETURNING 
+        id, 
+        name, 
+        is_paying as "isPaying",
+        exclude_from_all_headcount as "excludeFromAllHeadcount",
+        exclude_from_internal_headcount as "excludeFromInternalHeadcount"
     `;
     
     await logActivity(userId, 'CREATE', 'group_member', result[0].id, {
       groupId: id,
       name,
-      isPaying
+      isPaying,
+      excludeFromAllHeadcount,
+      excludeFromInternalHeadcount
     });
     
     res.status(201).json(result[0]);
   } catch (error) {
     logger.error('Error adding group member', error);
     res.status(500).json({ error: 'Failed to add group member' });
+  }
+});
+
+// Update member in group
+router.put('/:id/members/:memberId', requireAuth, requireContributor, async (req, res) => {
+  try {
+    const { id, memberId } = req.params;
+    const { name, isPaying, excludeFromAllHeadcount, excludeFromInternalHeadcount } = req.body;
+    const userId = req.user.id;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Member name is required' });
+    }
+    
+    const sql = getSql();
+    
+    // Get old member data
+    const oldMember = await sql`
+      SELECT * FROM group_members WHERE id = ${memberId} AND group_id = ${id}
+    `;
+    
+    if (oldMember.length === 0) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    
+    const result = await sql`
+      UPDATE group_members 
+      SET 
+        name = ${name},
+        is_paying = ${isPaying ? 1 : 0},
+        exclude_from_all_headcount = ${excludeFromAllHeadcount ? 1 : 0},
+        exclude_from_internal_headcount = ${excludeFromInternalHeadcount ? 1 : 0},
+        updated_at = NOW()
+      WHERE id = ${memberId} AND group_id = ${id}
+      RETURNING 
+        id, 
+        name, 
+        is_paying as "isPaying",
+        exclude_from_all_headcount as "excludeFromAllHeadcount",
+        exclude_from_internal_headcount as "excludeFromInternalHeadcount"
+    `;
+    
+    await logActivity(userId, 'UPDATE', 'group_member', memberId, {
+      groupId: id,
+      old: {
+        name: oldMember[0].name,
+        isPaying: oldMember[0].is_paying,
+        excludeFromAllHeadcount: oldMember[0].exclude_from_all_headcount,
+        excludeFromInternalHeadcount: oldMember[0].exclude_from_internal_headcount
+      },
+      new: { name, isPaying, excludeFromAllHeadcount, excludeFromInternalHeadcount }
+    });
+    
+    res.json(result[0]);
+  } catch (error) {
+    logger.error('Error updating group member', error);
+    res.status(500).json({ error: 'Failed to update group member' });
   }
 });
 

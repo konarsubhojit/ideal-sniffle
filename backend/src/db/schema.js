@@ -51,6 +51,8 @@ export const groupMembers = pgTable('group_members', {
   groupId: integer('group_id').references(() => groups.id).notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   isPaying: integer('is_paying').notNull().default(1), // 1 for paying member, 0 for non-paying
+  excludeFromAllHeadcount: integer('exclude_from_all_headcount').notNull().default(0), // 1 to exclude from all expense calculations (both internal & external)
+  excludeFromInternalHeadcount: integer('exclude_from_internal_headcount').notNull().default(0), // 1 to exclude from internal family calculations only
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 });

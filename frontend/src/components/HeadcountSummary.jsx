@@ -13,7 +13,6 @@ import {
   Grid
 } from '@mui/material';
 import GroupIcon from '@mui/icons-material/Group';
-import PeopleIcon from '@mui/icons-material/People';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 function HeadcountSummary({ groups = [], settlement = [] }) {

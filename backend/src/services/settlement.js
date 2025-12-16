@@ -130,7 +130,8 @@ export function calculateSettlement(expenses, groups = GROUPS) {
   
   // Calculate billable counts for each group
   let externalBillableCount = 0;
-  let internalBillableCount = 0;
+  let internalBillableForBaseCost = 0; // Excludes only globally excluded
+  let internalBillableForPayment = 0;  // Excludes both globally and internally excluded
   
   // Store calculated counts on each group for later use
   groups.forEach(group => {
@@ -142,11 +143,16 @@ export function calculateSettlement(expenses, groups = GROUPS) {
     if (group.type === 'External') {
       externalBillableCount += counts.billableCount;
     } else {
-      internalBillableCount += counts.internalBillableCount;
+      // For internal groups:
+      // - billableCount excludes only globally excluded (used for base cost)
+      // - internalBillableCount excludes both global and internal (used for payment split)
+      internalBillableForBaseCost += counts.billableCount;
+      internalBillableForPayment += counts.internalBillableCount;
     }
   });
   
-  const totalBillableHeads = externalBillableCount + internalBillableCount;
+  // Total billable heads for base cost calculation (excludes only globally excluded)
+  const totalBillableHeads = externalBillableCount + internalBillableForBaseCost;
   
   if (totalBillableHeads === 0) {
     return groups.map(group => ({
@@ -166,8 +172,8 @@ export function calculateSettlement(expenses, groups = GROUPS) {
   // Remaining expense for Main Family (Internal groups)
   const mainFamilyTotalCost = totalExpense - externalFairShare;
   
-  // Main Family fair share per paying member
-  const mainFamilyPerPayingMember = internalBillableCount > 0 ? mainFamilyTotalCost / internalBillableCount : 0;
+  // Main Family fair share per paying member (uses internal billable count which excludes both)
+  const mainFamilyPerPayingMember = internalBillableForPayment > 0 ? mainFamilyTotalCost / internalBillableForPayment : 0;
   
   return groups.map(group => {
     const totalPaid = expenses

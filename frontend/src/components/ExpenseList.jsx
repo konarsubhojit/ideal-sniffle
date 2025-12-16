@@ -3,28 +3,17 @@ import {
   Paper,
   Typography,
   IconButton,
-  Button,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 
-function ExpenseList({ expenses = [], groups = [], onEdit, onDelete, onReset }) {
+function ExpenseList({ expenses = [], groups = [], onEdit, onDelete }) {
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
           Expense History
         </Typography>
-        {expenses.length > 0 && (
-          <Button
-            variant="contained"
-            color="error"
-            size="small"
-            onClick={onReset}
-          >
-            Reset All
-          </Button>
-        )}
       </Box>
       
       {expenses.length === 0 ? (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -10,14 +10,19 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Button
+  Button,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useInfiniteExpenses, useAddExpense, useUpdateExpense, useDeleteExpense } from '../hooks/useExpenses';
 import { useGroups } from '../hooks/useExpenses';
 import { useSnackbar } from '../contexts/SnackbarContext';
+import { exportToCSV, filterExpenses } from '../utils/export';
 import AddExpenseForm from '../components/AddExpenseForm';
 import ExpenseList from '../components/ExpenseList';
 import EditExpenseDialog from '../components/EditExpenseDialog';
+import ExpenseFilters from '../components/ExpenseFilters';
 
 function ExpensesPage() {
   const { data: groups = [], isLoading: groupsLoading } = useGroups();
@@ -39,6 +44,13 @@ function ExpensesPage() {
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [filters, setFilters] = useState({
+    search: '',
+    paidBy: '',
+    category: '',
+    minAmount: '',
+    maxAmount: '',
+  });
 
   const {
     data,
@@ -159,6 +171,16 @@ function ExpensesPage() {
 
   // Flatten all pages of expenses
   const allExpenses = data?.pages?.flatMap(page => page.expenses) || [];
+  
+  // Apply filters
+  const filteredExpenses = useMemo(() => {
+    return filterExpenses(allExpenses, filters);
+  }, [allExpenses, filters]);
+
+  const handleExport = () => {
+    exportToCSV(filteredExpenses, groups);
+    showSnackbar('Expenses exported to CSV!', 'success');
+  };
 
   const loading = expensesLoading || groupsLoading;
 
@@ -176,9 +198,18 @@ function ExpensesPage() {
     <>
       <Card sx={{ mb: 3, boxShadow: 2 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-            Add Expense
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 0 }}>
+              Add Expense
+            </Typography>
+            {allExpenses.length > 0 && (
+              <Tooltip title="Export to CSV">
+                <IconButton color="primary" onClick={handleExport} size="small">
+                  <DownloadIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
@@ -194,6 +225,14 @@ function ExpensesPage() {
         </CardContent>
       </Card>
 
+      {!loading && allExpenses.length > 0 && (
+        <ExpenseFilters 
+          groups={groups}
+          onFilterChange={setFilters}
+          activeFilters={filters}
+        />
+      )}
+
       <Card sx={{ boxShadow: 2 }}>
         <CardContent>
           {loading ? (
@@ -203,7 +242,7 @@ function ExpensesPage() {
           ) : (
             <>
               <ExpenseList
-                expenses={allExpenses}
+                expenses={filteredExpenses}
                 groups={groups}
                 onEdit={handleEditExpense}
                 onDelete={handleDeleteClick}

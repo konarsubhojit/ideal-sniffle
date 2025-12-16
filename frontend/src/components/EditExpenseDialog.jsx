@@ -15,6 +15,17 @@ import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 
 function EditExpenseDialog({ open, groups, formData, onFormChange, onSave, onClose }) {
+  const categories = [
+    'Food & Dining',
+    'Transportation',
+    'Shopping',
+    'Entertainment',
+    'Utilities',
+    'Healthcare',
+    'Travel',
+    'Other'
+  ];
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Edit Expense</DialogTitle>
@@ -44,6 +55,24 @@ function EditExpenseDialog({ open, groups, formData, onFormChange, onSave, onClo
             inputProps={{ step: "0.01", min: "0" }}
             required
           />
+          
+          <FormControl fullWidth>
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={formData.category || ''}
+              label="Category"
+              onChange={(e) => onFormChange({ ...formData, category: e.target.value })}
+            >
+              <MenuItem value="">
+                <em>None</em>
+              </MenuItem>
+              {categories.map(category => (
+                <MenuItem key={category} value={category}>
+                  {category}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           
           <TextField
             fullWidth

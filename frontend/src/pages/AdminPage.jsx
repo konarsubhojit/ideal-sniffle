@@ -27,6 +27,13 @@ import {
   DialogActions,
   TextField,
   IconButton,
+  Checkbox,
+  FormControlLabel,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
+  FormLabel,
 } from '@mui/material';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import CreateIcon from '@mui/icons-material/Create';
@@ -35,8 +42,18 @@ import BlockIcon from '@mui/icons-material/Block';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { useUsers, useUserStats, useUpdateUserRole } from '../hooks/useUsers';
-import { useGroups, useAddGroup, useUpdateGroup, useDeleteGroup } from '../hooks/useExpenses';
+import { 
+  useGroups, 
+  useGroup, 
+  useAddGroup, 
+  useUpdateGroup, 
+  useDeleteGroup,
+  useAddGroupMember,
+  useUpdateGroupMember,
+  useDeleteGroupMember
+} from '../hooks/useExpenses';
 import { useSnackbar } from '../contexts/SnackbarContext';
 
 function TabPanel({ children, value, index }) {
@@ -56,6 +73,9 @@ function AdminPage() {
   const addGroup = useAddGroup();
   const updateGroup = useUpdateGroup();
   const deleteGroup = useDeleteGroup();
+  const addGroupMember = useAddGroupMember();
+  const updateGroupMember = useUpdateGroupMember();
+  const deleteGroupMember = useDeleteGroupMember();
   const showSnackbar = useSnackbar();
 
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
@@ -65,8 +85,22 @@ function AdminPage() {
     count: 1,
     type: 'Internal',
   });
+  const [memberFormOpen, setMemberFormOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [memberFormData, setMemberFormData] = useState({
+    name: '',
+    isPaying: true,
+    excludeFromAllHeadcount: false,
+    excludeFromInternalHeadcount: false,
+  });
 
-    const handleRoleChange = async (userId, newRole) => {
+  // Fetch group details when editing
+  const { data: groupDetails } = useGroup(editingGroup?.id);
+
+  // Derive members from group details instead of managing separate state
+  const groupMembers = (editingGroup && groupDetails?.members) || [];
+
+  const handleRoleChange = async (userId, newRole) => {
     try {
       await updateUserRole.mutateAsync({ 
         userId, 
@@ -124,6 +158,69 @@ function AdminPage() {
     } catch (error) {
       console.error('Error deleting group:', error);
       showSnackbar(error.message || 'Failed to delete group', 'error');
+    }
+  };
+
+  const handleOpenMemberForm = (member = null) => {
+    if (member) {
+      setEditingMember(member);
+      setMemberFormData({
+        name: member.name,
+        isPaying: member.isPaying,
+        excludeFromAllHeadcount: member.excludeFromAllHeadcount,
+        excludeFromInternalHeadcount: member.excludeFromInternalHeadcount,
+      });
+    } else {
+      setEditingMember(null);
+      setMemberFormData({
+        name: '',
+        isPaying: true,
+        excludeFromAllHeadcount: false,
+        excludeFromInternalHeadcount: false,
+      });
+    }
+    setMemberFormOpen(true);
+  };
+
+  const handleSaveMember = async () => {
+    if (!editingGroup) return;
+    
+    try {
+      if (editingMember) {
+        await updateGroupMember.mutateAsync({
+          groupId: editingGroup.id,
+          memberId: editingMember.id,
+          ...memberFormData,
+        });
+        showSnackbar('Member updated successfully!', 'success');
+      } else {
+        await addGroupMember.mutateAsync({
+          groupId: editingGroup.id,
+          ...memberFormData,
+        });
+        showSnackbar('Member added successfully!', 'success');
+      }
+      setMemberFormOpen(false);
+    } catch (error) {
+      console.error('Error saving member:', error);
+      showSnackbar(error.message || 'Failed to save member', 'error');
+    }
+  };
+
+  const handleDeleteMember = async (memberId) => {
+    if (!editingGroup || !window.confirm('Are you sure you want to remove this member?')) {
+      return;
+    }
+    
+    try {
+      await deleteGroupMember.mutateAsync({
+        groupId: editingGroup.id,
+        memberId,
+      });
+      showSnackbar('Member removed successfully!', 'success');
+    } catch (error) {
+      console.error('Error removing member:', error);
+      showSnackbar(error.message || 'Failed to remove member', 'error');
     }
   };
 
@@ -353,7 +450,7 @@ function AdminPage() {
       </Card>
 
       {/* Group Dialog */}
-      <Dialog open={groupDialogOpen} onClose={() => setGroupDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={groupDialogOpen} onClose={() => setGroupDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>{editingGroup ? 'Edit Group' : 'Add New Group'}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -366,12 +463,13 @@ function AdminPage() {
             />
             <TextField
               fullWidth
-              label="Member Count"
+              label="Member Count (used if no members defined)"
               type="number"
               value={groupFormData.count}
               onChange={(e) => setGroupFormData({ ...groupFormData, count: parseInt(e.target.value) || 1 })}
               inputProps={{ min: 1 }}
               required
+              helperText="This count is used when no individual members are defined below"
             />
             <FormControl fullWidth>
               <Typography variant="body2" sx={{ mb: 1 }}>Type</Typography>
@@ -383,6 +481,77 @@ function AdminPage() {
                 <MenuItem value="External">External</MenuItem>
               </Select>
             </FormControl>
+
+            {editingGroup && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Group Members
+                  </Typography>
+                  <Button
+                    size="small"
+                    startIcon={<PersonAddIcon />}
+                    onClick={() => handleOpenMemberForm()}
+                  >
+                    Add Member
+                  </Button>
+                </Box>
+                
+                {groupMembers.length === 0 ? (
+                  <Alert severity="info">
+                    No members defined. The group count ({groupFormData.count}) will be used for calculations.
+                  </Alert>
+                ) : (
+                  <List sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                    {groupMembers.map((member, index) => (
+                      <Box key={member.id}>
+                        {index > 0 && <Divider />}
+                        <ListItem
+                          secondaryAction={
+                            <Box>
+                              <IconButton 
+                                edge="end" 
+                                size="small" 
+                                onClick={() => handleOpenMemberForm(member)}
+                                sx={{ mr: 1 }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton 
+                                edge="end" 
+                                size="small" 
+                                color="error"
+                                onClick={() => handleDeleteMember(member.id)}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          }
+                        >
+                          <ListItemText
+                            primary={member.name}
+                            secondary={
+                              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                {member.excludeFromAllHeadcount && (
+                                  <Chip label="Excluded from all" size="small" color="error" />
+                                )}
+                                {!member.excludeFromAllHeadcount && member.excludeFromInternalHeadcount && groupFormData.type === 'Internal' && (
+                                  <Chip label="Excluded from internal" size="small" color="warning" />
+                                )}
+                                {!member.excludeFromAllHeadcount && !member.excludeFromInternalHeadcount && (
+                                  <Chip label="Included in calculations" size="small" color="success" />
+                                )}
+                              </Box>
+                            }
+                          />
+                        </ListItem>
+                      </Box>
+                    ))}
+                  </List>
+                )}
+              </>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
@@ -393,6 +562,65 @@ function AdminPage() {
             disabled={!groupFormData.name || groupFormData.count < 1}
           >
             {editingGroup ? 'Save Changes' : 'Add Group'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Member Dialog */}
+      <Dialog open={memberFormOpen} onClose={() => setMemberFormOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingMember ? 'Edit Member' : 'Add Member'}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Member Name"
+              value={memberFormData.name}
+              onChange={(e) => setMemberFormData({ ...memberFormData, name: e.target.value })}
+              required
+            />
+            
+            <Box>
+              <FormLabel component="legend">Calculation Settings</FormLabel>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={memberFormData.excludeFromAllHeadcount}
+                    onChange={(e) => setMemberFormData({ ...memberFormData, excludeFromAllHeadcount: e.target.checked })}
+                  />
+                }
+                label="Exclude from all calculations (global)"
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4, mb: 1 }}>
+                Member will not be counted in any expense calculations
+              </Typography>
+              
+              {!memberFormData.excludeFromAllHeadcount && groupFormData.type === 'Internal' && (
+                <>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={memberFormData.excludeFromInternalHeadcount}
+                        onChange={(e) => setMemberFormData({ ...memberFormData, excludeFromInternalHeadcount: e.target.checked })}
+                      />
+                    }
+                    label="Exclude from internal family calculations only"
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
+                    Member will still be counted in external calculations but not internal ones
+                  </Typography>
+                </>
+              )}
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMemberFormOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleSaveMember}
+            variant="contained"
+            disabled={!memberFormData.name}
+          >
+            {editingMember ? 'Save Changes' : 'Add Member'}
           </Button>
         </DialogActions>
       </Dialog>

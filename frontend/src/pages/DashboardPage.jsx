@@ -3,6 +3,7 @@ import { useSettlement, useOptimizedSettlements } from '../hooks/useSettlements'
 import { getCategoryStats } from '../utils/export';
 import SummaryCards from '../components/SummaryCards';
 import SummaryTable from '../components/SummaryTable';
+import HeadcountSummary from '../components/HeadcountSummary';
 import { useExpenses } from '../hooks/useExpenses';
 import { useGroups } from '../hooks/useExpenses';
 
@@ -23,7 +24,7 @@ function DashboardPage() {
   const baseUnitCost = totalExpense / TOTAL_BILLABLE_HEADS;
 
   // Calculate category statistics
-  const { stats: categoryStats, total: categoryTotal } = getCategoryStats(safeExpenses);
+  const { stats: categoryStats } = getCategoryStats(safeExpenses);
 
   // Calculate top spenders
   const spenderStats = groups.map(group => {
@@ -195,6 +196,18 @@ function DashboardPage() {
                 </Grid>
               </Grid>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <HeadcountSummary groups={groups} settlement={settlement} />
           )}
         </CardContent>
       </Card>

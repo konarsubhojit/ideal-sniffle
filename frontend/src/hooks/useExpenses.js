@@ -19,7 +19,7 @@ export function useInfiniteExpenses(perPage = 20) {
       return {
         expenses: normalizedData.map(exp => ({
           ...exp,
-          amount: parseFloat(exp.amount)
+          amount: parseFloat(exp.amount) || 0
         })),
         nextPage: hasMore ? pageParam + 1 : undefined,
       };
@@ -37,9 +37,18 @@ export function useExpenses() {
       const response = await fetch(`${API_URL}/api/expenses`);
       if (!response.ok) throw new Error('Failed to fetch expenses');
       const data = await response.json();
-      return data.map(exp => ({
+      
+      // Normalize data to always return an array
+      let normalizedData = [];
+      if (Array.isArray(data)) {
+        normalizedData = data;
+      } else if (Array.isArray(data?.expenses)) {
+        normalizedData = data.expenses;
+      }
+      
+      return normalizedData.map(exp => ({
         ...exp,
-        amount: parseFloat(exp.amount)
+        amount: parseFloat(exp.amount) || 0
       }));
     },
   });

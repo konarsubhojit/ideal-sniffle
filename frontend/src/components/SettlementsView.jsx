@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
-function SettlementsView({ optimizedSettlements }) {
+function SettlementsView({ optimizedSettlements = [] }) {
   return (
     <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
       <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>

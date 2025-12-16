@@ -8,7 +8,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 
-function ExpenseList({ expenses, groups, onEdit, onDelete, onReset }) {
+function ExpenseList({ expenses = [], groups = [], onEdit, onDelete, onReset }) {
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>

@@ -1,5 +1,7 @@
 import express from 'express';
 import { neon } from '@neondatabase/serverless';
+import { requireAuth } from '../middleware/auth.js';
+import { requireRole } from '../middleware/authorization.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
@@ -8,7 +10,7 @@ function getSql() {
   return neon(process.env.DATABASE_URL);
 }
 
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, requireRole, async (req, res) => {
   try {
     const parsedLimit = parseInt(req.query.limit);
     const parsedOffset = parseInt(req.query.offset);

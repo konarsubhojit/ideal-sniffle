@@ -1,6 +1,7 @@
 import express from 'express';
 import { neon } from '@neondatabase/serverless';
 import { requireAuth } from '../middleware/auth.js';
+import { requireRole, requireContributor, requireAdmin } from '../middleware/authorization.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
@@ -21,7 +22,7 @@ async function logActivity(userId, action, entityType, entityId, details = {}) {
   }
 }
 
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, requireRole, async (req, res) => {
   try {
     logger.info('Fetching all expenses');
     const sql = getSql();
@@ -40,6 +41,7 @@ router.get('/', async (req, res) => {
       FROM expenses e
       LEFT JOIN users cu ON e.created_by = cu.id
       LEFT JOIN users uu ON e.updated_by = uu.id
+      WHERE e.deleted_at IS NULL
       ORDER BY e.created_at DESC
     `;
     logger.info('Expenses fetched successfully', { count: expenses.length });
@@ -50,7 +52,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, requireContributor, async (req, res) => {
   try {
     const { paidBy, amount, description } = req.body;
     const userId = req.user.id;
@@ -85,7 +87,7 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-router.put('/:id', requireAuth, async (req, res) => {
+router.put('/:id', requireAuth, requireContributor, async (req, res) => {
   try {
     const { id } = req.params;
     const { paidBy, amount, description } = req.body;
@@ -143,25 +145,27 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAuth, requireContributor, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
     
-    logger.info('Deleting expense', { expenseId: id, userId });
+    logger.info('Soft-deleting expense', { expenseId: id, userId });
     
     const sql = getSql();
     const expenseToDelete = await sql`
-      SELECT * FROM expenses WHERE id = ${id}
+      SELECT * FROM expenses WHERE id = ${id} AND deleted_at IS NULL
     `;
     
     if (expenseToDelete.length === 0) {
-      logger.warn('Expense not found for deletion', { expenseId: id });
+      logger.warn('Expense not found or already deleted', { expenseId: id });
       return res.status(404).json({ error: 'Expense not found' });
     }
     
+    // Soft delete by setting deleted_at timestamp
     await sql`
-      DELETE FROM expenses
+      UPDATE expenses
+      SET deleted_at = NOW(), deleted_by = ${userId}
       WHERE id = ${id}
     `;
     
@@ -171,34 +175,11 @@ router.delete('/:id', requireAuth, async (req, res) => {
       description: expenseToDelete[0].description
     });
     
-    logger.info('Expense deleted successfully', { expenseId: id });
+    logger.info('Expense soft-deleted successfully', { expenseId: id });
     res.json({ message: 'Expense deleted successfully' });
   } catch (error) {
     logger.error('Error deleting expense', error, { expenseId: req.params.id });
     res.status(500).json({ error: 'Failed to delete expense' });
-  }
-});
-
-router.delete('/', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    
-    logger.warn('Resetting all expenses - DELETE ALL operation initiated', { userId });
-    
-    const sql = getSql();
-    const count = await sql`SELECT COUNT(*) as count FROM expenses`;
-    
-    await sql`DELETE FROM expenses`;
-    
-    await logActivity(userId, 'DELETE_ALL', 'expense', null, {
-      count: count[0].count
-    });
-    
-    logger.info('All expenses deleted successfully');
-    res.json({ message: 'All expenses deleted successfully' });
-  } catch (error) {
-    logger.error('Error resetting expenses', error);
-    res.status(500).json({ error: 'Failed to reset expenses' });
   }
 });
 

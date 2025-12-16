@@ -15,9 +15,10 @@ export function requireAuth(req, res, next) {
         id: decoded.id,
         email: decoded.email,
         name: decoded.name,
-        picture: decoded.picture
+        picture: decoded.picture,
+        role: decoded.role || null
       };
-      logger.debug('User authenticated via JWT', { userId: decoded.id });
+      logger.debug('User authenticated via JWT', { userId: decoded.id, role: decoded.role });
       return next();
     } else {
       logger.warn('Invalid or expired JWT token');
@@ -27,7 +28,7 @@ export function requireAuth(req, res, next) {
   
   // Fall back to session-based authentication for backwards compatibility
   if (req.isAuthenticated()) {
-    logger.debug('User authenticated via session', { userId: req.user.id });
+    logger.debug('User authenticated via session', { userId: req.user.id, role: req.user.role });
     return next();
   }
   
@@ -48,7 +49,8 @@ export function optionalAuth(req, res, next) {
         id: decoded.id,
         email: decoded.email,
         name: decoded.name,
-        picture: decoded.picture
+        picture: decoded.picture,
+        role: decoded.role || null
       };
     }
   }

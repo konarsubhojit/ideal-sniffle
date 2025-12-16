@@ -20,7 +20,8 @@ export function generateToken(user) {
       id: user.id,
       email: user.email,
       name: user.name,
-      picture: user.picture
+      picture: user.picture,
+      role: user.role || null
     };
     
     const token = jwt.sign(payload, JWT_SECRET, {
@@ -28,7 +29,7 @@ export function generateToken(user) {
       issuer: 'ideal-sniffle-backend'
     });
     
-    logger.info('JWT token generated', { userId: user.id });
+    logger.info('JWT token generated', { userId: user.id, role: user.role });
     return token;
   } catch (error) {
     logger.error('Error generating JWT token', error);

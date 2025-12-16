@@ -31,7 +31,8 @@ router.get('/', requireAuth, requireRole, async (req, res) => {
         e.id, 
         e.paid_by as "paidBy", 
         e.amount, 
-        e.description, 
+        e.description,
+        e.category,
         e.created_at as "createdAt",
         e.updated_at as "updatedAt",
         e.created_by as "createdBy",
@@ -54,10 +55,10 @@ router.get('/', requireAuth, requireRole, async (req, res) => {
 
 router.post('/', requireAuth, requireContributor, async (req, res) => {
   try {
-    const { paidBy, amount, description } = req.body;
+    const { paidBy, amount, description, category } = req.body;
     const userId = req.user.id;
     
-    logger.info('Adding new expense', { paidBy, amount, description, userId });
+    logger.info('Adding new expense', { paidBy, amount, description, category, userId });
     
     if (!paidBy || !amount) {
       logger.warn('Invalid expense data - missing required fields', { paidBy, amount });
@@ -66,9 +67,9 @@ router.post('/', requireAuth, requireContributor, async (req, res) => {
 
     const sql = getSql();
     const result = await sql`
-      INSERT INTO expenses (paid_by, amount, description, created_by, updated_by)
-      VALUES (${paidBy}, ${amount}, ${description || 'No description'}, ${userId}, ${userId})
-      RETURNING id, paid_by as "paidBy", amount, description, created_at as "createdAt", updated_at as "updatedAt"
+      INSERT INTO expenses (paid_by, amount, description, category, created_by, updated_by)
+      VALUES (${paidBy}, ${amount}, ${description || 'No description'}, ${category || null}, ${userId}, ${userId})
+      RETURNING id, paid_by as "paidBy", amount, description, category, created_at as "createdAt", updated_at as "updatedAt"
     `;
     
     const expense = result[0];
@@ -76,7 +77,8 @@ router.post('/', requireAuth, requireContributor, async (req, res) => {
     await logActivity(userId, 'CREATE', 'expense', expense.id, {
       paidBy,
       amount,
-      description
+      description,
+      category
     });
     
     logger.info('Expense added successfully', { expenseId: expense.id, paidBy, amount });
@@ -90,10 +92,10 @@ router.post('/', requireAuth, requireContributor, async (req, res) => {
 router.put('/:id', requireAuth, requireContributor, async (req, res) => {
   try {
     const { id } = req.params;
-    const { paidBy, amount, description } = req.body;
+    const { paidBy, amount, description, category } = req.body;
     const userId = req.user.id;
     
-    logger.info('Updating expense', { expenseId: id, paidBy, amount, description, userId });
+    logger.info('Updating expense', { expenseId: id, paidBy, amount, description, category, userId });
     
     if (!paidBy || !amount) {
       logger.warn('Invalid expense data - missing required fields', { paidBy, amount });
@@ -116,10 +118,11 @@ router.put('/:id', requireAuth, requireContributor, async (req, res) => {
         paid_by = ${paidBy}, 
         amount = ${amount}, 
         description = ${description || 'No description'},
+        category = ${category || null},
         updated_by = ${userId},
         updated_at = NOW()
       WHERE id = ${id}
-      RETURNING id, paid_by as "paidBy", amount, description, created_at as "createdAt", updated_at as "updatedAt"
+      RETURNING id, paid_by as "paidBy", amount, description, category, created_at as "createdAt", updated_at as "updatedAt"
     `;
     
     const expense = result[0];
@@ -128,12 +131,14 @@ router.put('/:id', requireAuth, requireContributor, async (req, res) => {
       old: {
         paidBy: oldExpense[0].paid_by,
         amount: oldExpense[0].amount,
-        description: oldExpense[0].description
+        description: oldExpense[0].description,
+        category: oldExpense[0].category
       },
       new: {
         paidBy,
         amount,
-        description
+        description,
+        category
       }
     });
     

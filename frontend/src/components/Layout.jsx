@@ -4,6 +4,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import HistoryIcon from '@mui/icons-material/History';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import Header from '../components/Header';
 import ErrorBoundary from '../components/ErrorBoundary';
 
@@ -16,11 +17,12 @@ function Layout({ user, onOpenActivityLog, onLogout }) {
     if (location.pathname === '/expenses') return 1;
     if (location.pathname === '/settlements') return 2;
     if (location.pathname === '/activity') return 3;
+    if (location.pathname === '/admin') return 4;
     return 0;
   };
 
   const handleTabChange = (event, newValue) => {
-    const routes = ['/', '/expenses', '/settlements', '/activity'];
+    const routes = ['/', '/expenses', '/settlements', '/activity', '/admin'];
     navigate(routes[newValue]);
   };
 
@@ -69,6 +71,14 @@ function Layout({ user, onOpenActivityLog, onLogout }) {
               iconPosition="start"
               sx={{ gap: 1 }}
             />
+            {user.role === 'admin' && (
+              <Tab 
+                icon={<AdminPanelSettingsIcon />} 
+                label="Admin" 
+                iconPosition="start"
+                sx={{ gap: 1 }}
+              />
+            )}
           </Tabs>
         </Paper>
 

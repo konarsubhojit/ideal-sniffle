@@ -12,6 +12,7 @@ import expensesRoutes from './routes/expenses.js';
 import settlementRoutes from './routes/settlement.js';
 import activityRoutes from './routes/activity.js';
 import groupsRoutes from './routes/groups.js';
+import usersRoutes from './routes/users.js';
 import logger from './utils/logger.js';
 
 const app = express();
@@ -93,6 +94,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/groups', groupsRoutes);
+app.use('/api/users', usersRoutes);
 app.use('/api', settlementRoutes);
 app.use('/api/activity', activityRoutes);
 

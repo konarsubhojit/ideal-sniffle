@@ -16,6 +16,7 @@ export const expenses = pgTable('expenses', {
   paidBy: integer('paid_by').notNull(),
   amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
   description: text('description'),
+  category: varchar('category', { length: 100 }),
   createdBy: integer('created_by').references(() => users.id),
   updatedBy: integer('updated_by').references(() => users.id),
   deletedAt: timestamp('deleted_at'), // soft delete

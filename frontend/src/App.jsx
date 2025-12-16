@@ -15,6 +15,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
 const SettlementsPage = lazy(() => import('./pages/SettlementsPage'));
 const ActivityPage = lazy(() => import('./pages/ActivityPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 // Reusable loading fallback for lazy-loaded routes
 const PageLoadingFallback = (
@@ -120,6 +121,11 @@ function AppContent() {
           <Route path="activity" element={
             <Suspense fallback={PageLoadingFallback}>
               <ActivityPage />
+            </Suspense>
+          } />
+          <Route path="admin" element={
+            <Suspense fallback={PageLoadingFallback}>
+              <AdminPage />
             </Suspense>
           } />
           <Route path="*" element={<Navigate to="/" replace />} />

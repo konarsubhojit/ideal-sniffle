@@ -3,6 +3,7 @@ import {
   Paper,
   Typography,
   IconButton,
+  Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -34,16 +35,26 @@ function ExpenseList({ expenses = [], groups = [], onEdit, onDelete }) {
                   gap: { xs: 1, sm: 2 }
                 }}>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        fontWeight: 500,
-                        fontSize: { xs: '0.95rem', sm: '1rem' },
-                        wordBreak: 'break-word'
-                      }}
-                    >
-                      {expense.description}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Typography 
+                        variant="body1" 
+                        sx={{ 
+                          fontWeight: 500,
+                          fontSize: { xs: '0.95rem', sm: '1rem' },
+                          wordBreak: 'break-word'
+                        }}
+                      >
+                        {expense.description}
+                      </Typography>
+                      {expense.category && (
+                        <Chip 
+                          label={expense.category} 
+                          size="small" 
+                          color="primary"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                       Paid by: {payer?.name || 'Unknown'}
                     </Typography>

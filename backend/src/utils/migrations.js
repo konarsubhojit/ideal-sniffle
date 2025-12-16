@@ -35,11 +35,12 @@ export async function runMigrations() {
       await sql`
         ALTER TABLE expenses 
         ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP,
-        ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id)
+        ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id),
+        ADD COLUMN IF NOT EXISTS category VARCHAR(100)
       `;
-      logger.info('Added soft-delete columns to expenses table');
+      logger.info('Added soft-delete and category columns to expenses table');
     } catch (error) {
-      logger.warn('Soft-delete columns might already exist', error.message);
+      logger.warn('Soft-delete/category columns might already exist', error.message);
     }
     
     // Create groups table

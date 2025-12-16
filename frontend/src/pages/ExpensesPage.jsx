@@ -26,14 +26,16 @@ function ExpensesPage() {
   const [formData, setFormData] = useState({
     paidBy: '',
     amount: '',
-    description: ''
+    description: '',
+    category: ''
   });
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [editFormData, setEditFormData] = useState({
     paidBy: '',
     amount: '',
-    description: ''
+    description: '',
+    category: ''
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
@@ -92,10 +94,11 @@ function ExpensesPage() {
       await addExpense.mutateAsync({
         paidBy: formData.paidBy,
         amount: parseFloat(formData.amount),
-        description: formData.description || 'No description'
+        description: formData.description || 'No description',
+        category: formData.category || null
       });
       
-      setFormData({ ...formData, amount: '', description: '' });
+      setFormData({ ...formData, amount: '', description: '', category: '' });
       showSnackbar('Expense added successfully!', 'success');
     } catch (error) {
       console.error('Error adding expense:', error);
@@ -108,7 +111,8 @@ function ExpensesPage() {
     setEditFormData({
       paidBy: expense.paidBy,
       amount: expense.amount.toString(),
-      description: expense.description
+      description: expense.description,
+      category: expense.category || ''
     });
     setEditDialogOpen(true);
   };
@@ -121,7 +125,8 @@ function ExpensesPage() {
         id: editingExpense.id,
         paidBy: editFormData.paidBy,
         amount: parseFloat(editFormData.amount),
-        description: editFormData.description || 'No description'
+        description: editFormData.description || 'No description',
+        category: editFormData.category || null
       });
       
       setEditDialogOpen(false);

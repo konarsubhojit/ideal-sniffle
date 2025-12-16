@@ -11,7 +11,7 @@ import {
   ListItemText,
 } from '@mui/material';
 
-function PersonView({ groups, selectedPerson, onSelectPerson, settlement, optimizedSettlements }) {
+function PersonView({ groups = [], selectedPerson, onSelectPerson, settlement = [], optimizedSettlements = [] }) {
   const getPersonTransactions = (personId) => {
     const toPay = optimizedSettlements.filter(t => t.from === personId);
     const toReceive = optimizedSettlements.filter(t => t.to === personId);

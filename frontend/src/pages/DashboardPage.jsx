@@ -14,7 +14,9 @@ function DashboardPage() {
   const loading = expensesLoading || settlementLoading || optimizedLoading;
   const error = expensesError || settlementError;
 
-  const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  // Ensure expenses is always an array before calling reduce
+  const safeExpenses = Array.isArray(expenses) ? expenses : [];
+  const totalExpense = safeExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   const baseUnitCost = totalExpense / TOTAL_BILLABLE_HEADS;
 
   if (error) {

@@ -5,6 +5,7 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import HistoryIcon from '@mui/icons-material/History';
 import Header from '../components/Header';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 function Layout({ user, onOpenActivityLog, onLogout }) {
   const navigate = useNavigate();
@@ -72,7 +73,9 @@ function Layout({ user, onOpenActivityLog, onLogout }) {
         </Paper>
 
         {/* Page Content */}
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </Container>
     </Box>
   );

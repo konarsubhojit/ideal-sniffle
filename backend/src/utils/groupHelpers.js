@@ -25,7 +25,7 @@ export async function fetchGroupsWithMembers(sql, groups) {
       exclude_from_all_headcount as "excludeFromAllHeadcount",
       exclude_from_internal_headcount as "excludeFromInternalHeadcount"
     FROM group_members
-    WHERE group_id IN ${sql(groupIds)}
+    WHERE group_id = ANY(${groupIds})
     ORDER BY group_id, id
   `;
   

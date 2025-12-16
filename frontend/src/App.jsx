@@ -14,6 +14,13 @@ const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
 const SettlementsPage = lazy(() => import('./pages/SettlementsPage'));
 const ActivityPage = lazy(() => import('./pages/ActivityPage'));
 
+// Reusable loading fallback for lazy-loaded routes
+const PageLoadingFallback = (
+  <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+    <CircularProgress />
+  </Box>
+);
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -51,22 +58,22 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Layout user={user} onOpenActivityLog={handleOpenActivityLog} onLogout={logout} />}>
           <Route index element={
-            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
+            <Suspense fallback={PageLoadingFallback}>
               <DashboardPage />
             </Suspense>
           } />
           <Route path="expenses" element={
-            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
+            <Suspense fallback={PageLoadingFallback}>
               <ExpensesPage />
             </Suspense>
           } />
           <Route path="settlements" element={
-            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
+            <Suspense fallback={PageLoadingFallback}>
               <SettlementsPage />
             </Suspense>
           } />
           <Route path="activity" element={
-            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
+            <Suspense fallback={PageLoadingFallback}>
               <ActivityPage />
             </Suspense>
           } />

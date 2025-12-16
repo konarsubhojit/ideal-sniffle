@@ -3,6 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { requireAuth } from '../middleware/auth.js';
 import { requireRole, requireContributor, requireAdmin } from '../middleware/authorization.js';
 import logger from '../utils/logger.js';
+import { fetchGroupsWithMembers } from '../utils/groupHelpers.js';
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.get('/', requireAuth, requireRole, async (req, res) => {
   try {
     logger.info('Fetching all groups');
     const sql = getSql();
-    const groups = await sql`
+    let groups = await sql`
       SELECT 
         g.id,
         g.name,
@@ -42,6 +43,10 @@ router.get('/', requireAuth, requireRole, async (req, res) => {
       LEFT JOIN users uu ON g.updated_by = uu.id
       ORDER BY g.id
     `;
+    
+    // Fetch excluded members for all groups in a single query
+    groups = await fetchGroupsWithMembers(sql, groups);
+    
     logger.info('Groups fetched successfully', { count: groups.length });
     res.json(groups);
   } catch (error) {

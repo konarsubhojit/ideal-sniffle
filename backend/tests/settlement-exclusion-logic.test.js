@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateSettlement, calculateOptimizedSettlements } from '../src/services/settlement.js';
+import { calculateSettlement } from '../src/services/settlement.js';
 
 describe('Settlement Calculation - Exclusion Logic', () => {
   

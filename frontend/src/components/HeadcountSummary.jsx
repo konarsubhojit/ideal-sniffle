@@ -15,6 +15,16 @@ import {
 import GroupIcon from '@mui/icons-material/Group';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
+// Helper function to get billable members for base cost calculation (excludes only globally excluded)
+const getBillableForBaseCost = (members) => {
+  return members.filter(m => !m.excludeFromAllHeadcount).length;
+};
+
+// Helper function to get billable members for internal payment (excludes both global and internal)
+const getBillableForPayment = (members) => {
+  return members.filter(m => !m.excludeFromAllHeadcount && !m.excludeFromInternalHeadcount).length;
+};
+
 function HeadcountSummary({ groups = [], settlement = [] }) {
   // Calculate summary statistics
   const calculateStats = () => {
@@ -34,14 +44,10 @@ function HeadcountSummary({ groups = [], settlement = [] }) {
         
         if (members.length > 0) {
           // For internal payment calculation: exclude both globally and internally excluded
-          const billableForPayment = members.filter(
-            m => !m.excludeFromAllHeadcount && !m.excludeFromInternalHeadcount
-          ).length;
-          internalBillable += billableForPayment;
+          internalBillable += getBillableForPayment(members);
           
           // For total billable (base cost): exclude only globally excluded
-          const billableForBaseCost = members.filter(m => !m.excludeFromAllHeadcount).length;
-          totalBillable += billableForBaseCost;
+          totalBillable += getBillableForBaseCost(members);
         } else {
           internalBillable += group.count;
           totalBillable += group.count;
@@ -51,7 +57,7 @@ function HeadcountSummary({ groups = [], settlement = [] }) {
         
         if (members.length > 0) {
           // Count members not excluded from all headcount
-          const billable = members.filter(m => !m.excludeFromAllHeadcount).length;
+          const billable = getBillableForBaseCost(members);
           externalBillable += billable;
           totalBillable += billable;
         } else {
@@ -188,11 +194,9 @@ function HeadcountSummary({ groups = [], settlement = [] }) {
               
               if (members.length > 0) {
                 if (group.type === 'Internal') {
-                  billableCount = members.filter(
-                    m => !m.excludeFromAllHeadcount && !m.excludeFromInternalHeadcount
-                  ).length;
+                  billableCount = getBillableForPayment(members);
                 } else {
-                  billableCount = members.filter(m => !m.excludeFromAllHeadcount).length;
+                  billableCount = getBillableForBaseCost(members);
                 }
                 excludedCount = totalCount - billableCount;
               } else {

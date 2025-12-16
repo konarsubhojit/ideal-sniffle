@@ -58,6 +58,8 @@ export function calculateGroupCounts(group) {
   const excludedMembers = group.members || [];
   
   // Count exclusions
+  // Note: If a member is globally excluded, we don't also count them as internally excluded
+  // because they're already excluded from the base calculation
   let globallyExcluded = 0;
   let internallyExcluded = 0;
   
@@ -65,6 +67,7 @@ export function calculateGroupCounts(group) {
     if (member.excludeFromAllHeadcount) {
       globallyExcluded++;
     } else if (group.type === 'Internal' && member.excludeFromInternalHeadcount) {
+      // Only count as internally excluded if NOT already globally excluded
       internallyExcluded++;
     }
   });

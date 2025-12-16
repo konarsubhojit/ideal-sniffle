@@ -23,14 +23,14 @@ const calculateBillableCount = (totalCount, excludedMembers, excludeType) => {
     return totalCount;
   }
   
-  const exclusionCount = excludedMembers.filter(m => {
-    if (excludeType === 'global') {
-      return m.excludeFromAllHeadcount;
-    } else if (excludeType === 'both') {
-      return m.excludeFromAllHeadcount || m.excludeFromInternalHeadcount;
+  let exclusionCount = 0;
+  for (const member of excludedMembers) {
+    if (excludeType === 'global' && member.excludeFromAllHeadcount) {
+      exclusionCount++;
+    } else if (excludeType === 'both' && (member.excludeFromAllHeadcount || member.excludeFromInternalHeadcount)) {
+      exclusionCount++;
     }
-    return false;
-  }).length;
+  }
   
   return totalCount - exclusionCount;
 };

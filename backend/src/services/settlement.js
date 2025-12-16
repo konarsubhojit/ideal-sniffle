@@ -92,8 +92,8 @@ export function calculateSettlement(expenses, groups = GROUPS) {
   const internalGroups = groups.filter(g => g.type === 'Internal');
   
   // Use billableCount if available (from database with member exclusions), otherwise use count
-  const externalHeadCount = externalGroups.reduce((sum, g) => sum + (g.billableCount !== undefined ? g.billableCount : g.count), 0);
-  const internalPayingCount = internalGroups.reduce((sum, g) => sum + (g.internalBillableCount !== undefined ? g.internalBillableCount : g.count), 0);
+  const externalHeadCount = externalGroups.reduce((sum, g) => sum + (g.billableCount ?? g.count), 0);
+  const internalPayingCount = internalGroups.reduce((sum, g) => sum + (g.internalBillableCount ?? g.count), 0);
   const totalBillableHeads = externalHeadCount + internalPayingCount;
   
   if (totalBillableHeads === 0) {
@@ -125,13 +125,11 @@ export function calculateSettlement(expenses, groups = GROUPS) {
     let fairShare;
     if (group.type === 'External') {
       // External group pays based on their billable headcount
-      const groupBillableCount = group.billableCount !== undefined ? group.billableCount : group.count;
-      fairShare = baseUnitCost * groupBillableCount;
+      fairShare = baseUnitCost * (group.billableCount ?? group.count);
     } else {
       // Internal groups: each paying member pays their share
       // Use internalBillableCount for internal groups
-      const groupInternalCount = group.internalBillableCount !== undefined ? group.internalBillableCount : group.count;
-      fairShare = mainFamilyPerPayingMember * groupInternalCount;
+      fairShare = mainFamilyPerPayingMember * (group.internalBillableCount ?? group.count);
     }
     
     const balance = totalPaid - fairShare;

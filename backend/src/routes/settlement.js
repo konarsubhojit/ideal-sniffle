@@ -44,6 +44,22 @@ router.get('/settlement', requireAuth, requireRole, async (req, res) => {
       ORDER BY id
     `;
     
+    // Fetch members for each group
+    for (const group of groups) {
+      const members = await sql`
+        SELECT 
+          id, 
+          name, 
+          is_paying as "isPaying",
+          exclude_from_all_headcount as "excludeFromAllHeadcount",
+          exclude_from_internal_headcount as "excludeFromInternalHeadcount"
+        FROM group_members
+        WHERE group_id = ${group.id}
+        ORDER BY id
+      `;
+      group.members = members;
+    }
+    
     const settlement = calculateSettlement(expenses, groups);
     
     logger.info('Settlement calculated successfully');
@@ -70,6 +86,22 @@ router.get('/settlement/optimized', requireAuth, requireRole, async (req, res) =
       FROM groups
       ORDER BY id
     `;
+    
+    // Fetch members for each group
+    for (const group of groups) {
+      const members = await sql`
+        SELECT 
+          id, 
+          name, 
+          is_paying as "isPaying",
+          exclude_from_all_headcount as "excludeFromAllHeadcount",
+          exclude_from_internal_headcount as "excludeFromInternalHeadcount"
+        FROM group_members
+        WHERE group_id = ${group.id}
+        ORDER BY id
+      `;
+      group.members = members;
+    }
     
     const optimizedSettlements = calculateOptimizedSettlements(expenses, groups);
     

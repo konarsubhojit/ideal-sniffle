@@ -42,6 +42,23 @@ router.get('/', requireAuth, requireRole, async (req, res) => {
       LEFT JOIN users uu ON g.updated_by = uu.id
       ORDER BY g.id
     `;
+    
+    // Fetch members for each group
+    for (const group of groups) {
+      const members = await sql`
+        SELECT 
+          id, 
+          name, 
+          is_paying as "isPaying",
+          exclude_from_all_headcount as "excludeFromAllHeadcount",
+          exclude_from_internal_headcount as "excludeFromInternalHeadcount"
+        FROM group_members
+        WHERE group_id = ${group.id}
+        ORDER BY id
+      `;
+      group.members = members;
+    }
+    
     logger.info('Groups fetched successfully', { count: groups.length });
     res.json(groups);
   } catch (error) {

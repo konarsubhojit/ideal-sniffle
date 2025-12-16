@@ -128,26 +128,6 @@ export function useDeleteExpense() {
   });
 }
 
-// Delete all expenses mutation
-export function useDeleteAllExpenses() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async () => {
-      const response = await authFetch(`${API_URL}/api/expenses`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to reset expenses');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['settlement'] });
-      queryClient.invalidateQueries({ queryKey: ['optimizedSettlements'] });
-    },
-  });
-}
-
 // Groups mutations
 export function useAddGroup() {
   const queryClient = useQueryClient();

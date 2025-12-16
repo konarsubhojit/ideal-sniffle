@@ -33,3 +33,7 @@ backend/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Test files
+backend/test-*.js
+test-*.js

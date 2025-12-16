@@ -19,9 +19,9 @@ function HeadcountSummary({ groups = [], settlement = [] }) {
   // Calculate summary statistics
   const calculateStats = () => {
     let totalMembers = 0;
-    let totalBillable = 0;
+    let totalBillable = 0; // Excludes only globally excluded members
     let internalMembers = 0;
-    let internalBillable = 0;
+    let internalBillable = 0; // For internal payment calculation (excludes both global and internal)
     let externalMembers = 0;
     let externalBillable = 0;
 
@@ -33,13 +33,18 @@ function HeadcountSummary({ groups = [], settlement = [] }) {
         internalMembers += memberCount;
         
         if (members.length > 0) {
-          // Count members not excluded from internal calculation
-          const billable = members.filter(
+          // For internal payment calculation: exclude both globally and internally excluded
+          const billableForPayment = members.filter(
             m => !m.excludeFromAllHeadcount && !m.excludeFromInternalHeadcount
           ).length;
-          internalBillable += billable;
+          internalBillable += billableForPayment;
+          
+          // For total billable (base cost): exclude only globally excluded
+          const billableForBaseCost = members.filter(m => !m.excludeFromAllHeadcount).length;
+          totalBillable += billableForBaseCost;
         } else {
           internalBillable += group.count;
+          totalBillable += group.count;
         }
       } else {
         externalMembers += memberCount;
@@ -48,15 +53,15 @@ function HeadcountSummary({ groups = [], settlement = [] }) {
           // Count members not excluded from all headcount
           const billable = members.filter(m => !m.excludeFromAllHeadcount).length;
           externalBillable += billable;
+          totalBillable += billable;
         } else {
           externalBillable += group.count;
+          totalBillable += group.count;
         }
       }
       
       totalMembers += memberCount;
     });
-
-    totalBillable = internalBillable + externalBillable;
 
     return {
       totalMembers,

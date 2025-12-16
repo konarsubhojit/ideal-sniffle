@@ -24,7 +24,7 @@ function DashboardPage() {
   const baseUnitCost = totalExpense / TOTAL_BILLABLE_HEADS;
 
   // Calculate category statistics
-  const { stats: categoryStats, total: categoryTotal } = getCategoryStats(safeExpenses);
+  const { stats: categoryStats } = getCategoryStats(safeExpenses);
 
   // Calculate top spenders
   const spenderStats = groups.map(group => {

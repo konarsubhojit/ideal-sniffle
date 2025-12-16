@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Card,
@@ -85,7 +85,6 @@ function AdminPage() {
     count: 1,
     type: 'Internal',
   });
-  const [groupMembers, setGroupMembers] = useState([]);
   const [memberFormOpen, setMemberFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [memberFormData, setMemberFormData] = useState({
@@ -98,11 +97,8 @@ function AdminPage() {
   // Fetch group details when editing
   const { data: groupDetails } = useGroup(editingGroup?.id);
 
-  useEffect(() => {
-    if (groupDetails?.members) {
-      setGroupMembers(groupDetails.members);
-    }
-  }, [groupDetails]);
+  // Derive members from group details instead of managing separate state
+  const groupMembers = (editingGroup && groupDetails?.members) || [];
 
   const handleRoleChange = async (userId, newRole) => {
     try {
@@ -125,11 +121,9 @@ function AdminPage() {
         count: group.count,
         type: group.type,
       });
-      setGroupMembers(group.members || []);
     } else {
       setEditingGroup(null);
       setGroupFormData({ name: '', count: 1, type: 'Internal' });
-      setGroupMembers([]);
     }
     setGroupDialogOpen(true);
   };

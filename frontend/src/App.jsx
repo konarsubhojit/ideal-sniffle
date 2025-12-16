@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CircularProgress, Box } from '@mui/material';
 import { useAuth } from './hooks/useAuth';
 import LoginPage from './components/LoginPage';
 import Layout from './components/Layout';
-import DashboardPage from './pages/DashboardPage';
-import ExpensesPage from './pages/ExpensesPage';
-import SettlementsPage from './pages/SettlementsPage';
-import ActivityPage from './pages/ActivityPage';
 import { useActivities } from './hooks/useActivities';
 import ActivityLogDialog from './components/ActivityLogDialog';
+
+// Lazy load page components for code splitting
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
+const SettlementsPage = lazy(() => import('./pages/SettlementsPage'));
+const ActivityPage = lazy(() => import('./pages/ActivityPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,10 +50,26 @@ function AppContent() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout user={user} onOpenActivityLog={handleOpenActivityLog} onLogout={logout} />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="expenses" element={<ExpensesPage />} />
-          <Route path="settlements" element={<SettlementsPage />} />
-          <Route path="activity" element={<ActivityPage />} />
+          <Route index element={
+            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
+              <DashboardPage />
+            </Suspense>
+          } />
+          <Route path="expenses" element={
+            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
+              <ExpensesPage />
+            </Suspense>
+          } />
+          <Route path="settlements" element={
+            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
+              <SettlementsPage />
+            </Suspense>
+          } />
+          <Route path="activity" element={
+            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
+              <ActivityPage />
+            </Suspense>
+          } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

@@ -25,9 +25,9 @@ export async function runMigrations() {
         ALTER TABLE users 
         ADD COLUMN IF NOT EXISTS role VARCHAR(50)
       `;
-      logger.info('Added role column to users table');
+      logger.info('Role column added to users table');
     } catch (error) {
-      logger.warn('Role column might already exist', error.message);
+      logger.warn('Role column already exists, skipping creation', error.message);
     }
     
     // Add soft-delete columns to expenses table
@@ -38,9 +38,9 @@ export async function runMigrations() {
         ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id),
         ADD COLUMN IF NOT EXISTS category VARCHAR(100)
       `;
-      logger.info('Added soft-delete and category columns to expenses table');
+      logger.info('Soft-delete and category columns added to expenses table');
     } catch (error) {
-      logger.warn('Soft-delete/category columns might already exist', error.message);
+      logger.warn('Soft-delete/category columns already exist, skipping creation', error.message);
     }
     
     // Create groups table

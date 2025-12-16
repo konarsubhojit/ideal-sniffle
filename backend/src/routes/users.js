@@ -1,7 +1,7 @@
 import express from 'express';
 import { neon } from '@neondatabase/serverless';
 import { requireAuth } from '../middleware/auth.js';
-import { requireAdmin } from '../middleware/authorization.js';
+import { requireAdmin, ROLES } from '../middleware/authorization.js';
 import logger from '../utils/logger.js';
 import { generateToken } from '../utils/jwt.js';
 
@@ -59,12 +59,12 @@ router.put('/:id/role', requireAuth, requireAdmin, async (req, res) => {
     
     logger.info('Updating user role', { userId: id, newRole: role, adminId });
     
-    // Validate role
-    const validRoles = ['admin', 'contributor', 'reader', null];
+    // Validate role using constants from authorization middleware
+    const validRoles = [ROLES.ADMIN, ROLES.CONTRIBUTOR, ROLES.READER, null];
     if (role !== null && !validRoles.includes(role)) {
       return res.status(400).json({ 
         error: 'Invalid role',
-        message: 'Role must be one of: admin, contributor, reader, or null'
+        message: `Role must be one of: ${Object.values(ROLES).join(', ')}, or null`
       });
     }
     
@@ -100,7 +100,7 @@ router.put('/:id/role', requireAuth, requireAdmin, async (req, res) => {
     
     res.json({
       ...updatedUser,
-      message: 'Role updated successfully. User must log out and log back in for changes to take effect.'
+      message: 'Role updated successfully. User must log out and log back in for the new permissions to take effect.'
     });
   } catch (error) {
     logger.error('Error updating user role', error);

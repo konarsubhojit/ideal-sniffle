@@ -10,6 +10,7 @@ import {
   Grid,
   Paper,
   Chip,
+  Stack,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -32,6 +33,8 @@ function ExpenseFilters({ groups, onFilterChange, activeFilters }) {
     category: '',
     minAmount: '',
     maxAmount: '',
+    startDate: '',
+    endDate: '',
   });
 
   const handleApplyFilters = () => {
@@ -45,9 +48,38 @@ function ExpenseFilters({ groups, onFilterChange, activeFilters }) {
       category: '',
       minAmount: '',
       maxAmount: '',
+      startDate: '',
+      endDate: '',
     };
     setFilters(clearedFilters);
     onFilterChange(clearedFilters);
+  };
+
+  const setQuickDateRange = (range) => {
+    const today = new Date();
+    let startDate = '';
+    let endDate = today.toISOString().split('T')[0];
+
+    switch (range) {
+      case 'today':
+        startDate = endDate;
+        break;
+      case 'week':
+        startDate = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];
+        break;
+      case 'month':
+        startDate = new Date(today.setMonth(today.getMonth() - 1)).toISOString().split('T')[0];
+        break;
+      case 'year':
+        startDate = new Date(today.setFullYear(today.getFullYear() - 1)).toISOString().split('T')[0];
+        break;
+      default:
+        break;
+    }
+
+    const newFilters = { ...filters, startDate, endDate };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
   };
 
   const hasActiveFilters = Object.values(filters).some(v => v !== '');
@@ -55,7 +87,7 @@ function ExpenseFilters({ groups, onFilterChange, activeFilters }) {
   return (
     <Paper sx={{ p: 2, mb: 2 }}>
       <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.5}>
           <TextField
             fullWidth
             label="Search description"
@@ -66,7 +98,7 @@ function ExpenseFilters({ groups, onFilterChange, activeFilters }) {
           />
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid item xs={12} sm={6} md={1.5}>
           <FormControl fullWidth size="small">
             <InputLabel>Paid By</InputLabel>
             <Select
@@ -84,7 +116,7 @@ function ExpenseFilters({ groups, onFilterChange, activeFilters }) {
           </FormControl>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid item xs={12} sm={6} md={1.5}>
           <FormControl fullWidth size="small">
             <InputLabel>Category</InputLabel>
             <Select
@@ -102,7 +134,7 @@ function ExpenseFilters({ groups, onFilterChange, activeFilters }) {
           </FormControl>
         </Grid>
 
-        <Grid item xs={6} sm={3} md={1.5}>
+        <Grid item xs={6} sm={3} md={1.25}>
           <TextField
             fullWidth
             label="Min ₹"
@@ -114,7 +146,7 @@ function ExpenseFilters({ groups, onFilterChange, activeFilters }) {
           />
         </Grid>
 
-        <Grid item xs={6} sm={3} md={1.5}>
+        <Grid item xs={6} sm={3} md={1.25}>
           <TextField
             fullWidth
             label="Max ₹"
@@ -126,29 +158,69 @@ function ExpenseFilters({ groups, onFilterChange, activeFilters }) {
           />
         </Grid>
 
-        <Grid item xs={6} sm={6} md={1}>
+        <Grid item xs={6} sm={6} md={1.5}>
+          <TextField
+            fullWidth
+            label="Start Date"
+            type="date"
+            value={filters.startDate}
+            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+            size="small"
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+
+        <Grid item xs={6} sm={6} md={1.5}>
+          <TextField
+            fullWidth
+            label="End Date"
+            type="date"
+            value={filters.endDate}
+            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+            size="small"
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+
+        <Grid item xs={6} sm={6} md={0.5}>
           <Button
             variant="contained"
             fullWidth
             onClick={handleApplyFilters}
-            startIcon={<SearchIcon />}
+            sx={{ minWidth: 0 }}
           >
-            Filter
+            <SearchIcon />
           </Button>
         </Grid>
 
-        <Grid item xs={6} sm={6} md={1}>
+        <Grid item xs={6} sm={6} md={0.5}>
           <Button
             variant="outlined"
             fullWidth
             onClick={handleClearFilters}
-            startIcon={<ClearIcon />}
             disabled={!hasActiveFilters}
+            sx={{ minWidth: 0 }}
           >
-            Clear
+            <ClearIcon />
           </Button>
         </Grid>
       </Grid>
+
+      {/* Quick date range buttons */}
+      <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+        <Button size="small" variant="outlined" onClick={() => setQuickDateRange('today')}>
+          Today
+        </Button>
+        <Button size="small" variant="outlined" onClick={() => setQuickDateRange('week')}>
+          Last 7 Days
+        </Button>
+        <Button size="small" variant="outlined" onClick={() => setQuickDateRange('month')}>
+          Last 30 Days
+        </Button>
+        <Button size="small" variant="outlined" onClick={() => setQuickDateRange('year')}>
+          Last Year
+        </Button>
+      </Stack>
 
       {hasActiveFilters && (
         <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -184,6 +256,20 @@ function ExpenseFilters({ groups, onFilterChange, activeFilters }) {
             <Chip 
               label={`Max: ₹${filters.maxAmount}`} 
               onDelete={() => setFilters({ ...filters, maxAmount: '' })} 
+              size="small"
+            />
+          )}
+          {filters.startDate && (
+            <Chip 
+              label={`From: ${new Date(filters.startDate).toLocaleDateString()}`} 
+              onDelete={() => setFilters({ ...filters, startDate: '' })} 
+              size="small"
+            />
+          )}
+          {filters.endDate && (
+            <Chip 
+              label={`To: ${new Date(filters.endDate).toLocaleDateString()}`} 
+              onDelete={() => setFilters({ ...filters, endDate: '' })} 
               size="small"
             />
           )}

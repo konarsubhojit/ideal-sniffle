@@ -50,6 +50,8 @@ function ExpensesPage() {
     category: '',
     minAmount: '',
     maxAmount: '',
+    startDate: '',
+    endDate: '',
   });
 
   const {

@@ -10,19 +10,29 @@ import {
   TableRow,
   Chip,
   Divider,
-  Grid
+  Grid,
+  Tooltip
 } from '@mui/material';
 import GroupIcon from '@mui/icons-material/Group';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
-// Helper function to get billable members for base cost calculation (excludes only globally excluded)
-const getBillableForBaseCost = (members) => {
-  return members.filter(m => !m.excludeFromAllHeadcount).length;
-};
-
-// Helper function to get billable members for internal payment (excludes both global and internal)
-const getBillableForPayment = (members) => {
-  return members.filter(m => !m.excludeFromAllHeadcount && !m.excludeFromInternalHeadcount).length;
+// Helper function to calculate billable count from total count minus exclusions
+const calculateBillableCount = (totalCount, excludedMembers, excludeType) => {
+  if (!excludedMembers || excludedMembers.length === 0) {
+    return totalCount;
+  }
+  
+  const exclusionCount = excludedMembers.filter(m => {
+    if (excludeType === 'global') {
+      return m.excludeFromAllHeadcount;
+    } else if (excludeType === 'both') {
+      return m.excludeFromAllHeadcount || m.excludeFromInternalHeadcount;
+    }
+    return false;
+  }).length;
+  
+  return totalCount - exclusionCount;
 };
 
 function HeadcountSummary({ groups = [], settlement = [] }) {
@@ -36,37 +46,27 @@ function HeadcountSummary({ groups = [], settlement = [] }) {
     let externalBillable = 0;
 
     groups.forEach(group => {
-      const members = group.members || [];
-      const memberCount = members.length > 0 ? members.length : group.count;
+      const totalCount = group.count; // Total members from group.count
+      const excludedMembers = group.members || []; // Only stores excluded members
       
       if (group.type === 'Internal') {
-        internalMembers += memberCount;
+        internalMembers += totalCount;
         
-        if (members.length > 0) {
-          // For internal payment calculation: exclude both globally and internally excluded
-          internalBillable += getBillableForPayment(members);
-          
-          // For total billable (base cost): exclude only globally excluded
-          totalBillable += getBillableForBaseCost(members);
-        } else {
-          internalBillable += group.count;
-          totalBillable += group.count;
-        }
+        // For internal payment: exclude both globally and internally excluded
+        internalBillable += calculateBillableCount(totalCount, excludedMembers, 'both');
+        
+        // For total billable (base cost): exclude only globally excluded
+        totalBillable += calculateBillableCount(totalCount, excludedMembers, 'global');
       } else {
-        externalMembers += memberCount;
+        externalMembers += totalCount;
         
-        if (members.length > 0) {
-          // Count members not excluded from all headcount
-          const billable = getBillableForBaseCost(members);
-          externalBillable += billable;
-          totalBillable += billable;
-        } else {
-          externalBillable += group.count;
-          totalBillable += group.count;
-        }
+        // Count members not excluded from all headcount
+        const billable = calculateBillableCount(totalCount, excludedMembers, 'global');
+        externalBillable += billable;
+        totalBillable += billable;
       }
       
-      totalMembers += memberCount;
+      totalMembers += totalCount;
     });
 
     return {
@@ -109,9 +109,14 @@ function HeadcountSummary({ groups = [], settlement = [] }) {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Paper sx={{ p: 2, bgcolor: '#e8f5e9', textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              Billable Heads
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+              <Typography variant="body2" color="text.secondary">
+                Billable Heads
+              </Typography>
+              <Tooltip title="Used for base cost calculation. Excludes only globally excluded members." arrow>
+                <InfoOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              </Tooltip>
+            </Box>
             <Typography variant="h4" sx={{ fontWeight: 600, color: 'success.main' }}>
               {stats.totalBillable}
             </Typography>
@@ -119,9 +124,14 @@ function HeadcountSummary({ groups = [], settlement = [] }) {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Paper sx={{ p: 2, bgcolor: '#f3e5f5', textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              Internal Billable
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+              <Typography variant="body2" color="text.secondary">
+                Internal Billable
+              </Typography>
+              <Tooltip title="Members who actually pay in internal groups. Excludes both globally and internally excluded members." arrow>
+                <InfoOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              </Tooltip>
+            </Box>
             <Typography variant="h4" sx={{ fontWeight: 600, color: 'primary.main' }}>
               {stats.internalBillable}
             </Typography>
@@ -188,21 +198,19 @@ function HeadcountSummary({ groups = [], settlement = [] }) {
           </TableHead>
           <TableBody>
             {groups.map(group => {
-              const members = group.members || [];
-              const totalCount = members.length > 0 ? members.length : group.count;
+              const totalCount = group.count; // Total from group.count
+              const excludedMembers = group.members || []; // Only stores excluded members
+              
               let billableCount, excludedCount;
               
-              if (members.length > 0) {
-                if (group.type === 'Internal') {
-                  billableCount = getBillableForPayment(members);
-                } else {
-                  billableCount = getBillableForBaseCost(members);
-                }
-                excludedCount = totalCount - billableCount;
+              if (group.type === 'Internal') {
+                // For internal groups, show payment billable count (excludes both)
+                billableCount = calculateBillableCount(totalCount, excludedMembers, 'both');
               } else {
-                billableCount = group.count;
-                excludedCount = 0;
+                // For external groups, show billable count (excludes only global)
+                billableCount = calculateBillableCount(totalCount, excludedMembers, 'global');
               }
+              excludedCount = totalCount - billableCount;
 
               return (
                 <TableRow key={group.id}>

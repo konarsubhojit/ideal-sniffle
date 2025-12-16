@@ -4,6 +4,7 @@ import { getGroups, calculateSettlement, calculateOptimizedSettlements } from '.
 import { requireAuth } from '../middleware/auth.js';
 import { requireRole } from '../middleware/authorization.js';
 import logger from '../utils/logger.js';
+import { fetchGroupsWithMembers } from '../utils/groupHelpers.js';
 
 const router = express.Router();
 
@@ -38,27 +39,14 @@ router.get('/settlement', requireAuth, requireRole, async (req, res) => {
       WHERE deleted_at IS NULL
     `;
     
-    const groups = await sql`
+    let groups = await sql`
       SELECT id, name, count, type
       FROM groups
       ORDER BY id
     `;
     
-    // Fetch members for each group
-    for (const group of groups) {
-      const members = await sql`
-        SELECT 
-          id, 
-          name, 
-          is_paying as "isPaying",
-          exclude_from_all_headcount as "excludeFromAllHeadcount",
-          exclude_from_internal_headcount as "excludeFromInternalHeadcount"
-        FROM group_members
-        WHERE group_id = ${group.id}
-        ORDER BY id
-      `;
-      group.members = members;
-    }
+    // Fetch excluded members for all groups in a single query
+    groups = await fetchGroupsWithMembers(sql, groups);
     
     const settlement = calculateSettlement(expenses, groups);
     
@@ -81,27 +69,14 @@ router.get('/settlement/optimized', requireAuth, requireRole, async (req, res) =
       WHERE deleted_at IS NULL
     `;
     
-    const groups = await sql`
+    let groups = await sql`
       SELECT id, name, count, type
       FROM groups
       ORDER BY id
     `;
     
-    // Fetch members for each group
-    for (const group of groups) {
-      const members = await sql`
-        SELECT 
-          id, 
-          name, 
-          is_paying as "isPaying",
-          exclude_from_all_headcount as "excludeFromAllHeadcount",
-          exclude_from_internal_headcount as "excludeFromInternalHeadcount"
-        FROM group_members
-        WHERE group_id = ${group.id}
-        ORDER BY id
-      `;
-      group.members = members;
-    }
+    // Fetch excluded members for all groups in a single query
+    groups = await fetchGroupsWithMembers(sql, groups);
     
     const optimizedSettlements = calculateOptimizedSettlements(expenses, groups);
     

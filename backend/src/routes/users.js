@@ -1,7 +1,7 @@
 import express from 'express';
 import { neon } from '@neondatabase/serverless';
 import { requireAuth } from '../middleware/auth.js';
-import { requireAdmin, ROLES } from '../middleware/authorization.js';
+import { requireAdmin, requireRole, ROLES } from '../middleware/authorization.js';
 import logger from '../utils/logger.js';
 import { generateToken } from '../utils/jwt.js';
 
@@ -10,6 +10,42 @@ const router = express.Router();
 function getSql() {
   return neon(process.env.DATABASE_URL);
 }
+
+router.patch('/me/digest-preference', requireAuth, requireRole, async (req, res) => {
+  if (typeof req.body.optOut !== 'boolean') {
+    return res.status(400).json({ error: 'optOut must be a boolean' });
+  }
+  try {
+    const sql = getSql();
+    const rows = await sql`
+      UPDATE users
+      SET digest_opt_out = ${req.body.optOut}
+      WHERE id = ${req.user.id}
+      RETURNING digest_opt_out as "optOut"
+    `;
+    await logActivity(req.user.id, 'UPDATE', 'digest_preference', req.user.id, {
+      optOut: req.body.optOut,
+    });
+
+    res.json(rows[0]);
+  } catch (error) {
+    logger.error('Error updating digest preference', error);
+    res.status(500).json({ error: 'Failed to update digest preference' });
+  }
+});
+
+router.get('/me/digest-preference', requireAuth, requireRole, async (req, res) => {
+  try {
+    const sql = getSql();
+    const rows = await sql`
+      SELECT digest_opt_out as "optOut" FROM users WHERE id = ${req.user.id}
+    `;
+    res.json(rows[0] || { optOut: false });
+  } catch (error) {
+    logger.error('Error fetching digest preference', error);
+    res.status(500).json({ error: 'Failed to fetch digest preference' });
+  }
+});
 
 async function logActivity(userId, action, entityType, entityId, details = {}) {
   try {

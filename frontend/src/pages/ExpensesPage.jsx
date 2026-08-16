@@ -15,7 +15,15 @@ import {
   Tooltip,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
-import { useInfiniteExpenses, useAddExpense, useUpdateExpense, useDeleteExpense } from '../hooks/useExpenses';
+import {
+  useAddExpense,
+  useDeleteExpense,
+  useInfiniteExpenses,
+  useReceiptFeatures,
+  useScanReceipt,
+  useUpdateExpense,
+  useUploadReceipt,
+} from '../hooks/useExpenses';
 import { useGroups } from '../hooks/useExpenses';
 import { useSnackbar } from '../contexts/SnackbarContext';
 import { exportToCSV, filterExpenses } from '../utils/export';
@@ -24,7 +32,7 @@ import ExpenseList from '../components/ExpenseList';
 import EditExpenseDialog from '../components/EditExpenseDialog';
 import ExpenseFilters from '../components/ExpenseFilters';
 
-function ExpensesPage() {
+function ExpensesPage({ user }) {
   const { data: groups = [], isLoading: groupsLoading } = useGroups();
   const showSnackbar = useSnackbar();
   
@@ -36,6 +44,8 @@ function ExpensesPage() {
   });
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [editReceiptFile, setEditReceiptFile] = useState(null);
   const [editFormData, setEditFormData] = useState({
     paidBy: '',
     amount: '',
@@ -66,6 +76,10 @@ function ExpensesPage() {
   const addExpense = useAddExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
+  const uploadReceipt = useUploadReceipt();
+  const scanReceipt = useScanReceipt();
+  const { data: receiptFeatures = {} } = useReceiptFeatures();
+  const canModify = user?.role === 'admin' || user?.role === 'contributor';
 
   // Infinite scroll
   const observerTarget = useRef(null);
@@ -104,19 +118,57 @@ function ExpensesPage() {
     e.preventDefault();
     if (!formData.amount || formData.amount <= 0) return;
     
+    let expense;
     try {
-      await addExpense.mutateAsync({
+      expense = await addExpense.mutateAsync({
         paidBy: formData.paidBy,
         amount: parseFloat(formData.amount),
         description: formData.description || 'No description',
         category: formData.category || null
       });
-      
-      setFormData({ ...formData, amount: '', description: '', category: '' });
-      showSnackbar('Expense added successfully!', 'success');
     } catch (error) {
       console.error('Error adding expense:', error);
       showSnackbar('Failed to add expense. Please try again.', 'error');
+      return;
+    }
+    let receiptUploadFailed = false;
+    if (receiptFile && receiptFeatures.receiptStorage) {
+      try {
+        await uploadReceipt.mutateAsync({ expenseId: expense.id, file: receiptFile });
+      } catch (error) {
+        console.error('Error uploading receipt:', error);
+        receiptUploadFailed = true;
+      }
+    }
+    setFormData({ ...formData, amount: '', description: '', category: '' });
+    setReceiptFile(null);
+    showSnackbar(
+      receiptUploadFailed ? 'Expense saved, but the receipt upload failed.' : 'Expense added successfully!',
+      receiptUploadFailed ? 'warning' : 'success',
+    );
+  };
+
+  const handleScanReceipt = async () => {
+    if (!receiptFile) return;
+    try {
+      const draft = await scanReceipt.mutateAsync(receiptFile);
+      const suggestedGroup = groups.find(group => (
+        draft.suggestedGroup
+        && group.name.toLowerCase() === draft.suggestedGroup.toLowerCase()
+      ));
+      setFormData(previous => ({
+        ...previous,
+        paidBy: suggestedGroup?.id || previous.paidBy,
+        amount: draft.totalAmount ?? previous.amount,
+        description: draft.merchantName || previous.description,
+        category: draft.suggestedCategory || previous.category,
+      }));
+      const confidence = typeof draft.confidence === 'number'
+        ? ` (${Math.round(draft.confidence * 100)}% confidence)`
+        : '';
+      showSnackbar(`Receipt scanned${confidence}. Review the draft before saving.`, 'success');
+    } catch (error) {
+      showSnackbar(error.message, 'warning');
     }
   };
 
@@ -129,6 +181,7 @@ function ExpensesPage() {
       category: expense.category || ''
     });
     setEditDialogOpen(true);
+    setEditReceiptFile(null);
   };
 
   const handleSaveEdit = async () => {
@@ -142,13 +195,21 @@ function ExpensesPage() {
         description: editFormData.description || 'No description',
         category: editFormData.category || null
       });
-      
       setEditDialogOpen(false);
       setEditingExpense(null);
       showSnackbar('Expense updated successfully!', 'success');
     } catch (error) {
       console.error('Error updating expense:', error);
       showSnackbar('Failed to update expense. Please try again.', 'error');
+      return;
+    }
+    if (editReceiptFile && receiptFeatures.receiptStorage) {
+      try {
+        await uploadReceipt.mutateAsync({ expenseId: editingExpense.id, file: editReceiptFile });
+      } catch (error) {
+        console.error('Error uploading receipt:', error);
+        showSnackbar('Expense updated, but the receipt upload failed.', 'warning');
+      }
     }
   };
 
@@ -222,6 +283,13 @@ function ExpensesPage() {
               formData={formData}
               onFormChange={setFormData}
               onSubmit={handleAddExpense}
+              receiptFile={receiptFile}
+              onReceiptSelect={setReceiptFile}
+              onScanReceipt={handleScanReceipt}
+              scanEnabled={Boolean(receiptFeatures.receiptScanning && canModify)}
+              storageEnabled={Boolean(receiptFeatures.receiptStorage)}
+              isScanning={scanReceipt.isPending}
+              canModify={canModify}
             />
           )}
         </CardContent>
@@ -248,6 +316,7 @@ function ExpensesPage() {
                 groups={groups}
                 onEdit={handleEditExpense}
                 onDelete={handleDeleteClick}
+                canModify={canModify}
               />
               
               {/* Infinite scroll trigger */}
@@ -270,6 +339,9 @@ function ExpensesPage() {
         onFormChange={setEditFormData}
         onSave={handleSaveEdit}
         onClose={() => setEditDialogOpen(false)}
+        receiptFile={editReceiptFile}
+        onReceiptSelect={setEditReceiptFile}
+        storageEnabled={Boolean(receiptFeatures.receiptStorage && canModify)}
       />
 
       <Dialog

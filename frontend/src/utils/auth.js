@@ -32,8 +32,10 @@ export const authFetch = async (url, options = {}) => {
   const token = getToken();
   const headers = {
     ...options.headers,
-    'Content-Type': 'application/json',
   };
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
   
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

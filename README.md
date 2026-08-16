@@ -10,6 +10,8 @@ A full-stack expense tracking application with React + Material UI frontend and 
 - Node.js v18+
 - [Neon PostgreSQL](https://neon.tech) account (free)
 - [Google Cloud Platform](https://console.cloud.google.com) account (for OAuth)
+- Cloudflare R2 account for private receipt storage
+- Optional Gemini API key for receipt auto-fill and Resend account for settlement emails
 
 ### 1. Clone & Install
 ```bash
@@ -35,6 +37,15 @@ GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
 JWT_SECRET=your_random_secret_32plus_chars
 SESSION_SECRET=your_random_secret_32plus_chars
 FRONTEND_URL=http://localhost:5173
+R2_ACCOUNT_ID=your_cloudflare_account_id
+R2_ACCESS_KEY_ID=your_r2_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+R2_BUCKET=private-receipts
+R2_PUBLIC_URL=https://receipts.example.com
+GEMINI_API_KEY=optional_gemini_key
+RESEND_API_KEY=your_resend_key
+RESEND_FROM=Expense Manager <settlements@example.com>
+DIGEST_SECRET=your_random_digest_secret
 ```
 
 **Frontend** (`frontend/.env`):
@@ -58,6 +69,9 @@ Open `http://localhost:5173`
 - ✅ **Google Authentication** - JWT-based secure login
 - ✅ **Role-Based Access Control** - Admin, Contributor, Reader roles with proper authorization
 - ✅ **Expense Management** - Full CRUD operations with soft-delete
+- ✅ **Private Receipts** - Camera/file capture stored in R2 and viewed through short-lived signed URLs
+- ✅ **Receipt Auto-Fill** - Gemini Vision creates an editable draft; it never saves an expense automatically
+- ✅ **Settlement Digests** - Idempotent monthly personal settlement email with user opt-out
 - ✅ **Configurable Groups** - Database-driven groups instead of hardcoded values
 - ✅ **Activity Log** - Complete audit trail
 - ✅ **Settlement Calculations** - Fair share with optimized payment plans
@@ -118,9 +132,11 @@ See [PROJECT.md - API Endpoints](./PROJECT.md#api-endpoints) for complete API do
 ### Quick Reference
 - **Auth**: `/api/auth/*` - Google OAuth login/logout
 - **Expenses**: `/api/expenses` - CRUD operations (requires role)
+- **Receipts**: `/api/expenses/:id/receipts` and `/api/expenses/scan-receipt`
 - **Groups**: `/api/groups` - Group management (requires role)
 - **Settlements**: `/api/settlement/*` - Calculations (requires role)
 - **Activity**: `/api/activity` - Audit log (requires role)
+- **Digest job**: `POST /api/settlement/digest` (shared-secret authentication)
 - **Health**: `/api/health` - Health check
 
 ## Role Management

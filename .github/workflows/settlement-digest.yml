@@ -1,0 +1,22 @@
+name: Monthly settlement digest
+
+on:
+  schedule:
+    - cron: '0 9 1 * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send settlement digest
+        env:
+          DIGEST_ENDPOINT_URL: ${{ secrets.DIGEST_ENDPOINT_URL }}
+          DIGEST_SECRET: ${{ secrets.DIGEST_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "x-digest-secret: ${DIGEST_SECRET}" \
+            "${DIGEST_ENDPOINT_URL}"

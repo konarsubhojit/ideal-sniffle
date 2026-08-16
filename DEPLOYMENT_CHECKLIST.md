@@ -6,6 +6,11 @@
 - [ ] Ensure DATABASE_URL is correctly configured
 - [ ] Verify JWT_SECRET and SESSION_SECRET are set (production)
 - [ ] Backup database before deployment
+- [ ] Create a private Cloudflare R2 bucket and token (no public object listing)
+- [ ] Configure `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, and `R2_PUBLIC_URL`
+- [ ] Optionally configure `GEMINI_API_KEY` (the scan UI is hidden when absent)
+- [ ] Configure `RESEND_API_KEY`, `RESEND_FROM`, and a strong `DIGEST_SECRET`
+- [ ] Add Actions secrets `DIGEST_ENDPOINT_URL` and `DIGEST_SECRET`
 
 ## Deployment Steps
 
@@ -18,6 +23,8 @@
 # - deleted_at, deleted_by columns in expenses table  
 # - groups table
 # - group_members table
+# - receipts and digest_deliveries tables
+# - digest_opt_out and settlement_group_id user columns
 # - Migrate hardcoded groups to database
 ```
 
@@ -51,6 +58,13 @@ UPDATE users SET role = 'admin' WHERE email = 'your-email@example.com';
 - [ ] Verify deleted expense doesn't appear in list
 - [ ] Check groups are loaded from database
 - [ ] Verify settlements still calculate correctly
+- [ ] Upload JPEG, PNG, WebP, and PDF receipts; reject invalid/oversized files
+- [ ] Confirm a Reader can view but cannot upload/delete receipts
+- [ ] Confirm receipt URLs expire and the R2 bucket is not publicly enumerable
+- [ ] Verify scan results remain editable and are not saved until confirmation
+- [ ] Link digest recipients to groups via `users.settlement_group_id`
+- [ ] Trigger the digest workflow twice and confirm the second run sends no duplicate email
+- [ ] Verify an opted-out user receives no digest
 
 ### 5. Assign Roles to Other Users
 
@@ -141,6 +155,11 @@ DROP TABLE IF EXISTS groups;
 - [ ] Delete confirmation dialog appears
 - [ ] Loading states work properly
 - [ ] Mobile responsive design works
+- [ ] Mobile camera capture opens from the receipt control
+
+### Receipt privacy
+
+Receipts contain personal financial data. They must only be served after RBAC checks through short-lived presigned URLs; never expose the bucket or rely on `R2_PUBLIC_URL` for receipt delivery.
 
 ## Common Issues & Solutions
 

@@ -7,8 +7,9 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import ReceiptPreview from './ReceiptPreview';
 
-function ExpenseList({ expenses = [], groups = [], onEdit, onDelete }) {
+function ExpenseList({ expenses = [], groups = [], onEdit, onDelete, canModify = true }) {
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
@@ -34,6 +35,7 @@ function ExpenseList({ expenses = [], groups = [], onEdit, onDelete }) {
                   flexDirection: { xs: 'column', sm: 'row' },
                   gap: { xs: 1, sm: 2 }
                 }}>
+                  <ReceiptPreview expense={expense} />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                       <Typography 
@@ -82,22 +84,22 @@ function ExpenseList({ expenses = [], groups = [], onEdit, onDelete }) {
                     >
                       ₹{expense.amount.toFixed(2)}
                     </Typography>
-                    <IconButton
+                    {canModify && <IconButton
                       color="primary"
                       onClick={() => onEdit(expense)}
                       size="small"
                       title="Edit expense"
                     >
                       <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
+                    </IconButton>}
+                    {canModify && <IconButton
                       color="error"
                       onClick={() => onDelete(expense.id)}
                       size="small"
                       title="Delete expense"
                     >
                       <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    </IconButton>}
                   </Box>
                 </Box>
               </Paper>

@@ -18,7 +18,7 @@
 
 ## Overview
 
-A full-stack expense tracking application with Google OAuth authentication, real-time settlement calculations, and comprehensive audit logging.
+A full-stack expense tracking application with Google OAuth authentication, private receipt capture, AI-assisted data entry, settlement calculations, and comprehensive audit logging.
 
 ### Key Features
 - **Google Authentication**: Secure JWT-based login with Google OAuth 2.0
@@ -27,6 +27,9 @@ A full-stack expense tracking application with Google OAuth authentication, real
 - **Settlement Calculations**: Fair share calculation with optimized payment plans
 - **User Tracking**: Track who added, edited, or deleted each expense
 - **Data Persistence**: PostgreSQL database via Neon (Serverless)
+- **Receipt Capture**: Private Cloudflare R2 objects accessed only with five-minute presigned URLs
+- **AI Drafts**: Gemini structured output prefills an editable form without persisting it
+- **Digest Email**: GitHub Actions invokes an idempotent Resend settlement digest monthly
 
 ---
 
@@ -281,12 +284,26 @@ Uses greedy algorithm to minimize transactions:
 | DELETE | `/api/expenses/:id` | Yes | Delete expense |
 | DELETE | `/api/expenses` | Yes | Delete all expenses |
 
+### Receipts
+| Method | Endpoint | Authorization | Description |
+|--------|----------|---------------|-------------|
+| GET | `/api/expenses/features` | Reader+ | Report configured receipt capabilities |
+| POST | `/api/expenses/scan-receipt` | Contributor/Admin | Return a Gemini-generated draft for confirmation |
+| GET | `/api/expenses/:expenseId/receipts` | Reader+ | List permitted expense receipts |
+| POST | `/api/expenses/:expenseId/receipts` | Contributor/Admin | Validate and upload a receipt (5 MB maximum) |
+| GET | `/api/expenses/:expenseId/receipts/:receiptId/url` | Reader+ | Create a five-minute presigned download URL |
+| DELETE | `/api/expenses/:expenseId/receipts/:receiptId` | Contributor/Admin | Delete object, metadata, and record activity |
+
+Allowed upload types are JPEG, PNG, WebP, and PDF. MIME headers and file signatures are validated server-side.
+
 ### Settlements
 | Method | Endpoint | Auth Required | Description |
 |--------|----------|---------------|-------------|
 | GET | `/api/settlement` | No | Get settlement data |
 | GET | `/api/settlement/optimized` | No | Get optimized plan |
 | GET | `/api/groups` | No | List all groups |
+| POST | `/api/settlement/digest` | Digest secret | Send the current plan once per user/month |
+| PATCH | `/api/users/me/digest-preference` | Reader+ | Set `{ "optOut": true/false }` |
 
 ### Activity Log
 | Method | Endpoint | Auth Required | Description |
@@ -306,6 +323,9 @@ Uses greedy algorithm to minimize transactions:
 - Node.js v18+
 - Neon PostgreSQL account (free tier available)
 - Google Cloud Platform account (for OAuth)
+- Cloudflare R2 account (private bucket)
+- Optional Gemini API access for scanning
+- Resend account for digest email
 
 ### 1. Clone Repository
 ```bash
@@ -337,6 +357,9 @@ cp .env.example .env
 # GOOGLE_CLIENT_SECRET=your_client_secret
 # JWT_SECRET=your_random_secret_32plus_chars
 # SESSION_SECRET=your_random_secret_32plus_chars
+# R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL
+# GEMINI_API_KEY (optional; scanning is disabled and hidden when absent)
+# RESEND_API_KEY, RESEND_FROM, DIGEST_SECRET
 
 npm install
 npm start
@@ -375,8 +398,14 @@ Open browser to `http://localhost:5173`
    - `SESSION_SECRET` (32+ chars)
    - `FRONTEND_URL=https://your-frontend.vercel.app`
    - `ALLOWED_ORIGINS=https://your-frontend.vercel.app`
+   - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`
+   - `GEMINI_API_KEY` (optional)
+   - `RESEND_API_KEY`, `RESEND_FROM`, `DIGEST_SECRET`
 4. Deploy
 5. Update Google OAuth redirect URIs with production URL
+6. Create a private R2 bucket and API token. Do not enable public object listing.
+7. Add repository Actions secrets `DIGEST_ENDPOINT_URL` (the full `/api/settlement/digest` URL) and `DIGEST_SECRET`.
+8. Link each email recipient to a group with `users.settlement_group_id`; users can opt out through the preference API.
 
 #### Frontend Deployment
 1. Import same GitHub repo to Vercel
@@ -430,7 +459,13 @@ Open browser to `http://localhost:5173`
 - Credentials only for trusted origins
 - Development mode allows localhost
 
-#### 6. Secure Token Transmission
+#### 6. Receipt Privacy
+- Receipts contain personal financial data.
+- R2 object keys are random and objects are not exposed through `R2_PUBLIC_URL`.
+- Every view is authorized through existing RBAC and receives a short-lived presigned URL.
+- Upload and deletion actions are written to the activity log.
+
+#### 7. Secure Token Transmission
 - **URL Hash**: Tokens passed via `#token=...` (not query params)
 - **Why**: Hash fragments not sent to server, don't appear in logs
 - **Cleanup**: Token removed from URL after extraction

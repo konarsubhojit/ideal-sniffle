@@ -110,7 +110,7 @@ function AppContent() {
           } />
           <Route path="expenses" element={
             <Suspense fallback={PageLoadingFallback}>
-              <ExpensesPage />
+              <ExpensesPage user={user} />
             </Suspense>
           } />
           <Route path="settlements" element={

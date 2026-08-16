@@ -41,11 +41,38 @@ export function useUpdateUserRole() {
         const error = await response.json();
         throw new Error(error.message || 'Failed to update user role');
       }
+
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['userStats'] });
     },
+  });
+}
+
+export function useDigestPreference() {
+  return useQuery({
+    queryKey: ['digestPreference'],
+    queryFn: async () => {
+      const response = await authFetch(`${API_URL}/api/users/me/digest-preference`);
+      if (!response.ok) throw new Error('Failed to fetch digest preference');
+      return response.json();
+    },
+  });
+}
+
+export function useUpdateDigestPreference() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (optOut) => {
+      const response = await authFetch(`${API_URL}/api/users/me/digest-preference`, {
+        method: 'PATCH',
+        body: JSON.stringify({ optOut }),
+      });
+      if (!response.ok) throw new Error('Failed to update digest preference');
+      return response.json();
+    },
+    onSuccess: data => queryClient.setQueryData(['digestPreference'], data),
   });
 }

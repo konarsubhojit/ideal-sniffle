@@ -5,6 +5,8 @@ on:
     - cron: '0 9 1 * *'
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   send-digest:
     runs-on: ubuntu-latest

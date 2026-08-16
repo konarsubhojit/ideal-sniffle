@@ -11,15 +11,19 @@ import {
   Divider,
   ListItemIcon,
   Chip,
+  Switch,
 } from '@mui/material';
 import HistoryIcon from '@mui/icons-material/History';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import CreateIcon from '@mui/icons-material/Create';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { useDigestPreference, useUpdateDigestPreference } from '../hooks/useUsers';
 
 function Header({ user, onOpenActivityLog, onLogout }) {
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
+  const { data: digestPreference } = useDigestPreference();
+  const updateDigestPreference = useUpdateDigestPreference();
 
   const getRoleInfo = () => {
     switch (user.role) {
@@ -102,6 +106,14 @@ function Header({ user, onOpenActivityLog, onLogout }) {
                 />
               </MenuItem>
             )}
+            <Divider />
+            <MenuItem
+              onClick={() => updateDigestPreference.mutate(!digestPreference?.optOut)}
+              disabled={updateDigestPreference.isPending}
+            >
+              <Switch size="small" checked={!digestPreference?.optOut} />
+              Monthly digest emails
+            </MenuItem>
             <Divider />
             <MenuItem onClick={() => { setUserMenuAnchor(null); onLogout(); }}>
               <ListItemIcon>

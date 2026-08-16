@@ -7,10 +7,25 @@ import {
   MenuItem,
   TextField,
   Button,
+  Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
-function AddExpenseForm({ groups, formData, onFormChange, onSubmit }) {
+function AddExpenseForm({
+  groups,
+  formData,
+  onFormChange,
+  onSubmit,
+  receiptFile,
+  onReceiptSelect,
+  onScanReceipt,
+  scanEnabled,
+  storageEnabled,
+  isScanning,
+  canModify,
+}) {
   const categories = [
     'Food & Dining',
     'Transportation',
@@ -25,6 +40,37 @@ function AddExpenseForm({ groups, formData, onFormChange, onSubmit }) {
   return (
     <Box component="form" onSubmit={onSubmit}>
       <Grid container spacing={2}>
+        {canModify && (storageEnabled || scanEnabled) && (
+          <Grid item xs={12}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Button component="label" variant="outlined" startIcon={<CameraAltIcon />}>
+                {storageEnabled ? 'Capture / attach receipt' : 'Capture receipt'}
+                <input
+                  hidden
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  capture="environment"
+                  onChange={event => onReceiptSelect(event.target.files?.[0] || null)}
+                />
+              </Button>
+              {scanEnabled && (
+                <Button
+                  variant="outlined"
+                  startIcon={<AutoAwesomeIcon />}
+                  onClick={onScanReceipt}
+                  disabled={!receiptFile || isScanning}
+                >
+                  {isScanning ? 'Scanning…' : 'Scan receipt'}
+                </Button>
+              )}
+              {receiptFile && (
+                <Typography variant="body2" color="text.secondary">
+                  {receiptFile.name}
+                </Typography>
+              )}
+            </Box>
+          </Grid>
+        )}
         <Grid item xs={12} sm={6} md={2.4}>
           <FormControl fullWidth>
             <InputLabel>Who Paid?</InputLabel>
@@ -92,6 +138,7 @@ function AddExpenseForm({ groups, formData, onFormChange, onSubmit }) {
             size="large"
             startIcon={<AddIcon />}
             sx={{ height: '56px' }}
+            disabled={!canModify}
           >
             Add Expense
           </Button>

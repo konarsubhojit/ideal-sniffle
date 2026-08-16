@@ -13,8 +13,19 @@ import {
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
 
-function EditExpenseDialog({ open, groups, formData, onFormChange, onSave, onClose }) {
+function EditExpenseDialog({
+  open,
+  groups,
+  formData,
+  onFormChange,
+  onSave,
+  onClose,
+  receiptFile,
+  onReceiptSelect,
+  storageEnabled,
+}) {
   const categories = [
     'Food & Dining',
     'Transportation',
@@ -55,6 +66,18 @@ function EditExpenseDialog({ open, groups, formData, onFormChange, onSave, onClo
             inputProps={{ step: "0.01", min: "0" }}
             required
           />
+          {storageEnabled && (
+            <Button component="label" variant="outlined" startIcon={<CameraAltIcon />}>
+              {receiptFile ? receiptFile.name : 'Capture / attach receipt'}
+              <input
+                hidden
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                capture="environment"
+                onChange={event => onReceiptSelect(event.target.files?.[0] || null)}
+              />
+            </Button>
+          )}
           
           <FormControl fullWidth>
             <InputLabel>Category</InputLabel>

@@ -1,8 +1,7 @@
 import express from 'express';
 import { neon } from '@neondatabase/serverless';
 import { requireAuth } from '../middleware/auth.js';
-import { requireAdmin, ROLES } from '../middleware/authorization.js';
-import { requireRole } from '../middleware/authorization.js';
+import { requireAdmin, requireRole, ROLES } from '../middleware/authorization.js';
 import logger from '../utils/logger.js';
 import { generateToken } from '../utils/jwt.js';
 
@@ -26,6 +25,19 @@ router.patch('/me/digest-preference', requireAuth, requireRole, async (req, res)
     `;
     await logActivity(req.user.id, 'UPDATE', 'digest_preference', req.user.id, {
       optOut: req.body.optOut,
+    });
+
+    router.get('/me/digest-preference', requireAuth, requireRole, async (req, res) => {
+      try {
+        const sql = getSql();
+        const rows = await sql`
+          SELECT digest_opt_out as "optOut" FROM users WHERE id = ${req.user.id}
+        `;
+        res.json(rows[0] || { optOut: false });
+      } catch (error) {
+        logger.error('Error fetching digest preference', error);
+        res.status(500).json({ error: 'Failed to fetch digest preference' });
+      }
     });
     res.json(rows[0]);
   } catch (error) {

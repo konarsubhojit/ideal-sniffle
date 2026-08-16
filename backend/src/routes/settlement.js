@@ -130,10 +130,14 @@ router.get('/settlement/optimized', requireAuth, requireRole, async (req, res) =
               WHERE period = ${deliveryPeriod} AND user_id = ${userId}
             `;
           },
-          sendEmail: email => resend.emails.send({
-            from: process.env.RESEND_FROM,
-            ...email,
-          }),
+          sendEmail: async email => {
+            const response = await resend.emails.send({
+              from: process.env.RESEND_FROM,
+              ...email,
+            });
+            if (response.error) throw new Error(response.error.message);
+            return response.data;
+          },
         });
         res.json({ period, ...result });
       } catch (error) {

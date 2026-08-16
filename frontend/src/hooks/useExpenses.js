@@ -141,6 +141,67 @@ export function useDeleteExpense() {
   });
 }
 
+export function useReceiptFeatures() {
+  return useQuery({
+    queryKey: ['receiptFeatures'],
+    queryFn: async () => {
+      const response = await authFetch(`${API_URL}/api/expenses/features`);
+      if (!response.ok) return { receiptStorage: false, receiptScanning: false };
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useScanReceipt() {
+  return useMutation({
+    mutationFn: async (file) => {
+      const body = new FormData();
+      body.append('receipt', file);
+      const response = await authFetch(`${API_URL}/api/expenses/scan-receipt`, {
+        method: 'POST',
+        body,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Receipt scanning failed');
+      return data.draft;
+    },
+  });
+}
+
+export function useUploadReceipt() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ expenseId, file }) => {
+      const body = new FormData();
+      body.append('receipt', file);
+      const response = await authFetch(`${API_URL}/api/expenses/${expenseId}/receipts`, {
+        method: 'POST',
+        body,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Receipt upload failed');
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['expenses'] }),
+  });
+}
+
+export function useReceiptUrl(expenseId, receiptId) {
+  return useQuery({
+    queryKey: ['receiptUrl', expenseId, receiptId],
+    queryFn: async () => {
+      const response = await authFetch(
+        `${API_URL}/api/expenses/${expenseId}/receipts/${receiptId}/url`,
+      );
+      if (!response.ok) throw new Error('Failed to access receipt');
+      return response.json();
+    },
+    enabled: Boolean(expenseId && receiptId),
+    staleTime: 4 * 60 * 1000,
+  });
+}
+
 // Groups mutations
 export function useAddGroup() {
   const queryClient = useQueryClient();

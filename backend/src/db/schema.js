@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, integer, decimal, jsonb } from 'drizzle-orm/pg-core';
+import { boolean, decimal, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -7,9 +7,31 @@ export const users = pgTable('users', {
   name: varchar('name', { length: 255 }),
   picture: text('picture'),
   role: varchar('role', { length: 50 }), // admin, contributor, reader, or null for no access
+  digestOptOut: boolean('digest_opt_out').notNull().default(false),
+  settlementGroupId: integer('settlement_group_id'),
   createdAt: timestamp('created_at').defaultNow(),
   lastLogin: timestamp('last_login').defaultNow()
 });
+
+export const receipts = pgTable('receipts', {
+  id: serial('id').primaryKey(),
+  expenseId: integer('expense_id').references(() => expenses.id, { onDelete: 'cascade' }).notNull(),
+  objectKey: text('object_key').unique().notNull(),
+  originalName: text('original_name').notNull(),
+  mimeType: varchar('mime_type', { length: 100 }).notNull(),
+  size: integer('size').notNull(),
+  uploadedBy: integer('uploaded_by').references(() => users.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const digestDeliveries = pgTable('digest_deliveries', {
+  id: serial('id').primaryKey(),
+  period: varchar('period', { length: 7 }).notNull(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, table => [
+  uniqueIndex('digest_deliveries_period_user_idx').on(table.period, table.userId),
+]);
 
 export const expenses = pgTable('expenses', {
   id: serial('id').primaryKey(),

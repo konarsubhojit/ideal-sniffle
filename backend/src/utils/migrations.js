@@ -135,6 +135,60 @@ export async function runMigrations() {
     } catch (error) {
       logger.warn('Exclusion flags migration issue', error.message);
     }
+
+    try {
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS digest_opt_out BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS settlement_group_id INTEGER REFERENCES groups(id)
+      `;
+      await sql`
+        UPDATE users u
+        SET settlement_group_id = g.id
+        FROM groups g
+        WHERE u.settlement_group_id IS NULL
+          AND LOWER(TRIM(u.name)) = LOWER(TRIM(g.name))
+      `;
+      logger.info('Settlement digest preferences added to users table');
+    } catch (error) {
+      logger.warn('Settlement digest user migration issue', error.message);
+    }
+
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS receipts (
+          id SERIAL PRIMARY KEY,
+          expense_id INTEGER NOT NULL REFERENCES expenses(id) ON DELETE CASCADE,
+          object_key TEXT NOT NULL UNIQUE,
+          original_name TEXT NOT NULL,
+          mime_type VARCHAR(100) NOT NULL,
+          size INTEGER NOT NULL,
+          uploaded_by INTEGER NOT NULL REFERENCES users(id),
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS receipts_expense_id_idx ON receipts(expense_id)
+      `;
+      logger.info('Created receipts table');
+    } catch (error) {
+      logger.warn('Receipts table migration issue', error.message);
+    }
+
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS digest_deliveries (
+          id SERIAL PRIMARY KEY,
+          period VARCHAR(7) NOT NULL,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          created_at TIMESTAMP DEFAULT NOW(),
+          UNIQUE(period, user_id)
+        )
+      `;
+      logger.info('Created digest deliveries table');
+    } catch (error) {
+      logger.warn('Digest deliveries table migration issue', error.message);
+    }
     
     logger.info('Database migrations completed successfully');
   } catch (error) {

@@ -39,6 +39,8 @@ router.get('/', requireAuth, requireRole, async (req, res) => {
         e.updated_by as "updatedBy",
         cu.name as "createdByName",
         uu.name as "updatedByName"
+        ,(SELECT r.id FROM receipts r WHERE r.expense_id = e.id ORDER BY r.created_at DESC LIMIT 1) as "receiptId"
+        ,(SELECT r.mime_type FROM receipts r WHERE r.expense_id = e.id ORDER BY r.created_at DESC LIMIT 1) as "receiptMimeType"
       FROM expenses e
       LEFT JOIN users cu ON e.created_by = cu.id
       LEFT JOIN users uu ON e.updated_by = uu.id

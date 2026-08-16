@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import logger from '../utils/logger.js';
 
 function safeEqual(actual, expected) {
   if (!actual || !expected) return false;
@@ -55,7 +56,14 @@ export async function runSettlementDigest({
       });
       result.sent += 1;
     } catch (error) {
-      await releaseDelivery(period, recipient.id);
+      try {
+        await releaseDelivery(period, recipient.id);
+      } catch (releaseError) {
+        logger.error('Failed to release settlement digest delivery claim', releaseError, {
+          period,
+          userId: recipient.id,
+        });
+      }
       result.failed += 1;
     }
   }

@@ -457,15 +457,15 @@ Open browser to `http://localhost:5173`
 #### 5. CORS Protection
 - Whitelist-based origin validation
 - Credentials only for trusted origins
+- Development mode allows localhost
 
 #### 6. Receipt Privacy
 - Receipts contain personal financial data.
 - R2 object keys are random and objects are not exposed through `R2_PUBLIC_URL`.
 - Every view is authorized through existing RBAC and receives a short-lived presigned URL.
 - Upload and deletion actions are written to the activity log.
-- Development mode allows localhost
 
-#### 6. Secure Token Transmission
+#### 7. Secure Token Transmission
 - **URL Hash**: Tokens passed via `#token=...` (not query params)
 - **Why**: Hash fragments not sent to server, don't appear in logs
 - **Cleanup**: Token removed from URL after extraction

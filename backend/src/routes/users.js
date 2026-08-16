@@ -27,22 +27,23 @@ router.patch('/me/digest-preference', requireAuth, requireRole, async (req, res)
       optOut: req.body.optOut,
     });
 
-    router.get('/me/digest-preference', requireAuth, requireRole, async (req, res) => {
-      try {
-        const sql = getSql();
-        const rows = await sql`
-          SELECT digest_opt_out as "optOut" FROM users WHERE id = ${req.user.id}
-        `;
-        res.json(rows[0] || { optOut: false });
-      } catch (error) {
-        logger.error('Error fetching digest preference', error);
-        res.status(500).json({ error: 'Failed to fetch digest preference' });
-      }
-    });
     res.json(rows[0]);
   } catch (error) {
     logger.error('Error updating digest preference', error);
     res.status(500).json({ error: 'Failed to update digest preference' });
+  }
+});
+
+router.get('/me/digest-preference', requireAuth, requireRole, async (req, res) => {
+  try {
+    const sql = getSql();
+    const rows = await sql`
+      SELECT digest_opt_out as "optOut" FROM users WHERE id = ${req.user.id}
+    `;
+    res.json(rows[0] || { optOut: false });
+  } catch (error) {
+    logger.error('Error fetching digest preference', error);
+    res.status(500).json({ error: 'Failed to fetch digest preference' });
   }
 });
 

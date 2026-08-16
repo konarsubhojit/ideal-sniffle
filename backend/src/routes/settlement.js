@@ -86,69 +86,70 @@ router.get('/settlement/optimized', requireAuth, requireRole, async (req, res) =
       transactionCount: optimizedSettlements.length 
     });
 
-    router.post('/settlement/digest', verifyDigestSecret, async (req, res) => {
-      if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM) {
-        return res.status(503).json({ error: 'Settlement email is not configured' });
-      }
-      try {
-        const sql = getSql();
-        const expenses = await sql`
-          SELECT id, paid_by as "paidBy", amount, description
-          FROM expenses
-          WHERE deleted_at IS NULL
-        `;
-        let groups = await sql`
-          SELECT id, name, count, type FROM groups ORDER BY id
-        `;
-        groups = await fetchGroupsWithMembers(sql, groups);
-        const recipients = await sql`
-          SELECT id, email, name, settlement_group_id as "groupId"
-          FROM users
-          WHERE email IS NOT NULL
-            AND settlement_group_id IS NOT NULL
-            AND digest_opt_out = FALSE
-            AND role IS NOT NULL
-        `;
-        const period = new Date().toISOString().slice(0, 7);
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        const result = await runSettlementDigest({
-          period,
-          recipients,
-          transactions: calculateOptimizedSettlements(expenses, groups),
-          claimDelivery: async (deliveryPeriod, userId) => {
-            const rows = await sql`
-              INSERT INTO digest_deliveries (period, user_id)
-              VALUES (${deliveryPeriod}, ${userId})
-              ON CONFLICT (period, user_id) DO NOTHING
-              RETURNING id
-            `;
-            return rows.length > 0;
-          },
-          releaseDelivery: async (deliveryPeriod, userId) => {
-            await sql`
-              DELETE FROM digest_deliveries
-              WHERE period = ${deliveryPeriod} AND user_id = ${userId}
-            `;
-          },
-          sendEmail: async email => {
-            const response = await resend.emails.send({
-              from: process.env.RESEND_FROM,
-              ...email,
-            });
-            if (response.error) throw new Error(response.error.message);
-            return response.data;
-          },
-        });
-        res.json({ period, ...result });
-      } catch (error) {
-        logger.error('Error sending settlement digest', error);
-        res.status(500).json({ error: 'Failed to send settlement digest' });
-      }
-    });
     res.json(optimizedSettlements);
   } catch (error) {
     logger.error('Error calculating optimized settlements', error);
     res.status(500).json({ error: 'Failed to calculate optimized settlements' });
+  }
+});
+
+router.post('/settlement/digest', verifyDigestSecret, async (req, res) => {
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM) {
+    return res.status(503).json({ error: 'Settlement email is not configured' });
+  }
+  try {
+    const sql = getSql();
+    const expenses = await sql`
+      SELECT id, paid_by as "paidBy", amount, description
+      FROM expenses
+      WHERE deleted_at IS NULL
+    `;
+    let groups = await sql`
+      SELECT id, name, count, type FROM groups ORDER BY id
+    `;
+    groups = await fetchGroupsWithMembers(sql, groups);
+    const recipients = await sql`
+      SELECT id, email, name, settlement_group_id as "groupId"
+      FROM users
+      WHERE email IS NOT NULL
+        AND settlement_group_id IS NOT NULL
+        AND digest_opt_out = FALSE
+        AND role IS NOT NULL
+    `;
+    const period = new Date().toISOString().slice(0, 7);
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const result = await runSettlementDigest({
+      period,
+      recipients,
+      transactions: calculateOptimizedSettlements(expenses, groups),
+      claimDelivery: async (deliveryPeriod, userId) => {
+        const rows = await sql`
+          INSERT INTO digest_deliveries (period, user_id)
+          VALUES (${deliveryPeriod}, ${userId})
+          ON CONFLICT (period, user_id) DO NOTHING
+          RETURNING id
+        `;
+        return rows.length > 0;
+      },
+      releaseDelivery: async (deliveryPeriod, userId) => {
+        await sql`
+          DELETE FROM digest_deliveries
+          WHERE period = ${deliveryPeriod} AND user_id = ${userId}
+        `;
+      },
+      sendEmail: async email => {
+        const response = await resend.emails.send({
+          from: process.env.RESEND_FROM,
+          ...email,
+        });
+        if (response.error) throw new Error(response.error.message);
+        return response.data;
+      },
+    });
+    res.json({ period, ...result });
+  } catch (error) {
+    logger.error('Error sending settlement digest', error);
+    res.status(500).json({ error: 'Failed to send settlement digest' });
   }
 });
 
